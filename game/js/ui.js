@@ -34,13 +34,16 @@ const PANELS = [
 ];
 
 export class GameUI {
-  constructor(state, engine, onStateChange) {
+  constructor(state, engine, onStateChange, services = {}) {
     this.state         = state;
     this.engine        = engine;
     this.onStateChange = onStateChange;
     this.activePanel   = 'farm';
     this._toastTimer   = null;
     this._achieveQueue = [];
+    // Injected services
+    this._BattleSim    = services.BattleSim    ?? null;
+    this._AdMobService = services.AdMobService ?? null;
   }
 
   init() {
@@ -1005,7 +1008,7 @@ export class GameUI {
           this._closeModal();
           const r = ArmySystem.attack(state, btn.dataset.attack);
           if (r.ok) {
-            this._showBattleResult(r);
+            this._showBattleResult(r, { ...state.army }, kingdom);
             this._checkAchievements();
             this.onStateChange();
           }
@@ -1015,20 +1018,28 @@ export class GameUI {
     });
   }
 
-  _showBattleResult(r) {
-    const rewardStr = Object.entries(r.reward).map(([res,amt]) => `${RESOURCES[res]?.icon ?? res}${amt}`).join(' ');
-    this._openModal(`
-      <h3>${r.won ? '🏆 MENANG!' : '💀 KALAH!'}</h3>
-      <div class="battle-result-${r.won ? 'won' : 'lost'}">
-        <div class="battle-power">⚔️ Pasukanmu: ${r.power.mine} vs 👹 Musuh: ${r.power.enemy}</div>
-        <div class="battle-log-modal">
-          ${r.log.map(l => `<div class="log-line">${l}</div>`).join('')}
+  _showBattleResult(r, myArmy, kingdom) {
+    // Use visual battle simulation if available
+    if (this._BattleSim && myArmy && kingdom) {
+      this._BattleSim.show(myArmy, kingdom, r, () => {
+        this._renderBattle();
+      });
+    } else {
+      // Fallback: text modal
+      const rewardStr = Object.entries(r.reward ?? {}).map(([res,amt]) => `${RESOURCES[res]?.icon ?? res}${amt}`).join(' ');
+      this._openModal(`
+        <h3>${r.won ? '🏆 MENANG!' : '💀 KALAH!'}</h3>
+        <div class="battle-result-${r.won ? 'won' : 'lost'}">
+          <div class="battle-power">⚔️ Pasukanmu: ${r.power?.mine ?? '-'} vs 👹 Musuh: ${r.power?.enemy ?? '-'}</div>
+          <div class="battle-log-modal">
+            ${(r.log ?? []).map(l => `<div class="log-line">${l}</div>`).join('')}
+          </div>
+          ${r.won ? `<div class="battle-reward">💰 Reward: ${rewardStr}</div>` : '<div class="battle-loss">😢 Kehilangan beberapa pasukan & resource</div>'}
         </div>
-        ${r.won ? `<div class="battle-reward">💰 Reward: ${rewardStr}</div>` : '<div class="battle-loss">😢 Kehilangan beberapa pasukan & resource</div>'}
-      </div>
-      <button class="btn-primary" id="modal-cancel" ontouchstart="">OK</button>
-    `);
-    document.getElementById('modal-cancel')?.addEventListener('click', () => { this._closeModal(); this._renderBattle(); });
+        <button class="btn-primary" id="modal-cancel" ontouchstart="">OK</button>
+      `);
+      document.getElementById('modal-cancel')?.addEventListener('click', () => { this._closeModal(); this._renderBattle(); });
+    }
   }
 
   // ── Panel: Map ────────────────────────────────────────────
