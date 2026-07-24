@@ -1,6 +1,7 @@
-# Game Asset Browser
+# IndoFarm Adventure — Asset Browser & Game
 
-Web browser untuk 4 pack game asset — **885 aset total**.
+Browser asset dan fondasi game idle RPG Android. Jalankan `python server.py` untuk
+membuka browser asset di `/` dan prototype game di `/game/`.
 
 ## Pack yang tersedia
 
@@ -27,6 +28,21 @@ Pack alam 3D stylized:
 - **Rocks & Paths** — 25 model `.gltf` (Pebble Round/Square, Rock Medium, RockPath Round/Square)
 - **Textures** — 20 texture PNG (bark, daun, rumput, batu, dll.)
 - **Previews** — 4 preview JPG
+
+### 🏰 Medieval Village MegaKit (936 file sumber/export)
+Bangunan medieval dalam export glTF, FBX, OBJ, material, binary, dan texture.
+
+### 🧥 Modular Character Outfits (121 file sumber/export)
+Outfit karakter modular dalam export glTF/FBX dan texture.
+
+## Audit asset
+
+Gunakan `python tools/audit_assets.py` untuk memeriksa jumlah file, format, file
+duplikat berdasarkan hash, dan validitas dasar image/SVG/glTF/GLB. Laporan terakhir
+tersimpan di `ASSET_AUDIT.md` dan `asset-audit.json`.
+
+Empat typo nama asset UI telah diberi nama baku; nama lama tetap dipertahankan agar
+referensi lama tidak rusak. Detailnya ada di `ASSET_AUDIT.md`.
 
 ## Cara menjalankan
 
