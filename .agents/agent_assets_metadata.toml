@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ovVFvwso0GAHq763SPjCC"
+uri = "file://alur-cerita-dan-cara-bermain-indofarm.txt"
+type = "text"
+title = "Unduh — Alur Cerita dan Cara Bermain INDOFARM"
