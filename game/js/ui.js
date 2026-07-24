@@ -755,10 +755,17 @@ export class GameUI {
   }
 
   // ── Panel: Gacha ──────────────────────────────────────────
+  _gachaFreeUsedToday() {
+    const today = new Date();
+    const d = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    return this.state.data.gacha.freeSpinDate === d;
+  }
+
   _renderGacha() {
     const el    = document.getElementById('panel-gacha');
     const state = this.state.data;
     const last  = state.gacha.lastResult;
+    const freeUsed = this._gachaFreeUsedToday();
     el.innerHTML = `
       <div class="panel-header"><h2>🎰 Gacha Pelangi</h2><p class="panel-sub">Total putaran: ${state.gacha.totalSpins} · Permata: ${state.resources.gem} 💎</p></div>
       <div class="gacha-wheel">
@@ -767,6 +774,15 @@ export class GameUI {
           <div class="gacha-banner-title">Putar & Menangkan!</div>
           <div class="gacha-banner-sub">Item langka menunggumu</div>
         </div>
+
+        <div class="gacha-free-wrap">
+          <button class="btn-gacha-free ${freeUsed ? 'used' : ''}" id="btn-gacha-free" ontouchstart="" ${freeUsed ? 'disabled' : ''}>
+            ${freeUsed
+              ? `<span>✅ Gratis Harian Sudah Dipakai</span><span class="gacha-free-sub">Kembali besok</span>`
+              : `<span>🎁 Gratis 1× Hari Ini</span><span class="gacha-free-sub">Tonton iklan 30 detik</span>`}
+          </button>
+        </div>
+
         <div class="gacha-btns">
           <button class="btn-gacha-single" id="btn-gacha-1" ontouchstart="">
             <span>🎲 Putar 1x</span><span class="gacha-cost">💎 10</span>
@@ -801,6 +817,33 @@ export class GameUI {
         </div>
       ` : ''}
     `;
+    // Gratis harian via iklan
+    document.getElementById('btn-gacha-free')?.addEventListener('click', async () => {
+      if (this._gachaFreeUsedToday()) return;
+      this.showToast('📺 Memuat iklan...', 'info');
+      try {
+        const ad = await (this._AdMobService ?? AdMobService).showRewarded('spin_gacha');
+        if (ad.earned) {
+          // Tandai sudah dipakai hari ini
+          const today = new Date();
+          state.gacha.freeSpinDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+          // Spin gratis tanpa potong permata
+          const result = GachaSystem._pick();
+          GachaSystem._applyReward(state, result);
+          state.gacha.totalSpins++;
+          state.stats.gachaSpins++;
+          state.gacha.lastResult = [result];
+          this.showToast('🎁 Spin gratis! Dapat ' + this._gachaResultLabel(result) + '!', 'success');
+          this.renderAll();
+          this.onStateChange();
+        } else {
+          this.showToast('Iklan tidak selesai. Coba lagi.', 'error');
+        }
+      } catch(e) {
+        this.showToast('Iklan tidak tersedia. Coba lagi nanti.', 'error');
+      }
+    });
+
     document.getElementById('btn-gacha-1')?.addEventListener('click', () => {
       const r = GachaSystem.spin(state, 1);
       if (r.ok) { this.showToast('🎲 Dapat '+this._gachaResultLabel(r.results[0])+'!', 'success'); this.renderAll(); this.onStateChange(); }

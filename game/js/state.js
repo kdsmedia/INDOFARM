@@ -77,6 +77,7 @@ function defaultState() {
     gacha: {
       totalSpins: 0,
       lastResult: null,
+      freeSpinDate: null, // 'YYYY-MM-DD' — tanggal terakhir spin gratis dipakai
     },
 
     // ── NEW: Achievements ────────────────────────────────────

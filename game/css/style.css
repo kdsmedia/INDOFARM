@@ -126,6 +126,10 @@ html, body {
 .btn-danger   { background: var(--red); color: #fff; }
 .btn-gacha-single { background: linear-gradient(135deg, #1f6feb, #8957e5); color: #fff; border: none; border-radius: var(--r); padding: 14px 20px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-height: 70px; }
 .btn-gacha-multi  { background: linear-gradient(135deg, #f5c518, #f08030); color: #000; border: none; border-radius: var(--r); padding: 14px 20px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1.2; min-height: 70px; }
+.gacha-free-wrap  { margin-bottom: 10px; }
+.btn-gacha-free   { width: 100%; background: linear-gradient(135deg, #2ea043, #1a7431); color: #fff; border: none; border-radius: var(--r); padding: 14px 20px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 60px; }
+.btn-gacha-free.used { background: var(--card2); color: var(--muted); cursor: not-allowed; }
+.gacha-free-sub   { font-size: 11px; font-weight: 400; opacity: 0.85; }
 .btn-sm { padding: 6px 11px; font-size: 11px; min-height: 34px; }
 .btn-primary:active, .btn-accent:active, .btn-ghost:active, .btn-battle:active { opacity: .75; transform: scale(.97); }
 .disabled { opacity: .38; pointer-events: none; }
