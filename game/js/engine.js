@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
 import { NATURE_MODELS, HEROES, CROPS } from './data.js';
 
-const ANIM_RIG = '/KayKit_Adventurers_2.0_FREE/Animations/gltf/Rig_Medium_MovementBasic.glb';
+const ANIM_RIG = '/KayKit_Adventurers_2.0_FREE/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb';
 
 export class WorldEngine {
   constructor(canvas) {
@@ -227,9 +227,12 @@ export class WorldEngine {
     this.loader.load(
       ANIM_RIG,
       (gltf) => {
-        // Find the walk/movement clip
-        if (gltf.animations.length > 0) {
-          this._walkClip = gltf.animations[0];
+        // Find Walking_A clip specifically — animations[0] is Jump_Full_Long
+        const walkClip = gltf.animations.find(a => a.name === 'Walking_A')
+                      ?? gltf.animations.find(a => a.name.startsWith('Walking'))
+                      ?? gltf.animations[0];
+        if (walkClip) {
+          this._walkClip = walkClip;
         }
         this._rigLoaded = true;
         // Apply to any heroes already loaded
