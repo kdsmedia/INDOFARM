@@ -1,45 +1,44 @@
 // ═══════════════════════════════════════════════════════════════
-//  INDOFARM ADVENTURE — Entry Point & Game Loop (Android)
+//  INDOFARM ADVENTURE — Entry Point & Game Loop (Full Edition)
 // ═══════════════════════════════════════════════════════════════
 
 import { GameState }    from './state.js';
 import { WorldEngine }  from './engine.js';
 import { GameUI }       from './ui.js';
-import { ResourceSystem, FarmSystem, QuestSystem } from './systems.js';
+import {
+  ResourceSystem, FarmSystem, QuestSystem,
+  CraftSystem, ArmySystem, AchievementSystem, DailySystem,
+} from './systems.js';
 import { CONFIG, CROPS, BUILDINGS } from './data.js';
 
-// ── Inisialisasi State ────────────────────────────────────────
+// ── Init State ─────────────────────────────────────────────────
 const state = new GameState();
 state.load();
 
-// ── Init UI Dulu (membangun skeleton HTML) ────────────────────
+// ── Init UI ────────────────────────────────────────────────────
 const ui = new GameUI(state, null, onStateChange);
-ui.init();   // ← menciptakan #game-canvas di DOM
+ui.init();
 
-// ── Sekarang ambil canvas & buat engine ──────────────────────
+// ── Init Engine ────────────────────────────────────────────────
 const canvas = document.getElementById('game-canvas');
 const engine = new WorldEngine(canvas);
-ui.engine    = engine;  // hubungkan ke UI
+ui.engine = engine;
 
 let tickCount = 0;
 
-// ── Boot ──────────────────────────────────────────────────────
+// ── Boot ───────────────────────────────────────────────────────
 async function boot() {
   setLoadingProgress(5, 'Menginisialisasi...');
 
-  // Init Three.js engine
   await engine.init();
   setLoadingProgress(40, 'Memuat dunia 3D...');
 
-  // Engine siap → sembunyikan loading
   engine.onReady(() => {
     setLoadingProgress(100, 'Siap!');
     setTimeout(hideLoading, 500);
   });
 
   setLoadingProgress(70, 'Sinkronisasi data...');
-
-  // Sync dunia dengan state awal
   engine.syncState(state.data, CROPS, BUILDINGS);
 
   setLoadingProgress(90, 'Menghitung progres offline...');
@@ -52,11 +51,21 @@ async function boot() {
     ui.showOfflineDialog(gained, offlineGain.effectiveSec);
   }
 
-  // Render UI awal
-  ui.renderAll();
+  // Check daily bonus on boot
+  _checkDailyBonusOnBoot();
 
-  // Mulai game loop
+  ui.renderAll();
   startGameLoop();
+}
+
+// ── Daily Bonus Auto-Check ────────────────────────────────────
+function _checkDailyBonusOnBoot() {
+  if (DailySystem.canClaim(state.data)) {
+    // Nudge user to claim (don't auto-claim)
+    setTimeout(() => {
+      ui.showToast('🎁 Bonus harian tersedia! Buka tab Bonus.', 'info');
+    }, 2000);
+  }
 }
 
 // ── Game Loop (1 detik) ───────────────────────────────────────
@@ -68,37 +77,57 @@ function tick() {
   const data = state.data;
   tickCount++;
 
-  // Sistem produksi resource
+  // Core systems
   ResourceSystem.tick(data);
-
-  // Sistem farm (pertumbuhan tanaman)
   FarmSystem.tick(data);
 
-  // Cek quest selesai & update notifikasi
+  // Quest completion check
   const doneQuests = QuestSystem.tick(data);
-  if (doneQuests.length > 0 && ui.activePanel === 'quest') {
-    ui.renderPanel('quest');
+  if (doneQuests.length > 0) {
+    if (ui.activePanel === 'quest') ui.renderPanel('quest');
+    ui.showToast(`✅ Quest selesai! Buka tab Quest untuk klaim.`, 'success');
   }
 
-  // Update HUD resource setiap tick
+  // Crafting completion
+  const doneCrafts = CraftSystem.tick(data);
+  if (doneCrafts.length > 0) {
+    if (ui.activePanel === 'crafting') ui.renderPanel('crafting');
+    ui.showToast(`🔨 Item selesai dibuat!`, 'success');
+  }
+
+  // Army recruiting
+  ArmySystem.tick(data);
+
+  // Achievement check every 5 ticks
+  if (tickCount % 5 === 0) {
+    const newAchs = AchievementSystem.check(data);
+    newAchs.forEach(ach => {
+      ui.showToast(`🏆 Pencapaian: ${ach.name}!`, 'success');
+    });
+  }
+
+  // HUD update every tick
   ui._renderHUD();
 
-  // Update panel aktif setiap 3 detik (hemat baterai Android)
+  // Panel update every 3 ticks (battery-friendly)
   if (tickCount % 3 === 0) {
     ui.renderPanel(ui.activePanel);
     engine.syncState(state.data, CROPS, BUILDINGS);
   }
 
-  // Auto-save setiap CONFIG.SAVE_INTERVAL detik
+  // Play time stats
+  data.stats.playTimeSec = data.stats.playTimeSec || 0;
+
+  // Auto-save
   state.saveIfNeeded();
 }
 
-// ── Callback saat state berubah dari UI ──────────────────────
+// ── State Change Callback ─────────────────────────────────────
 function onStateChange() {
   engine.syncState(state.data, CROPS, BUILDINGS);
 }
 
-// ── Loading Bar ───────────────────────────────────────────────
+// ── Loading Helpers ───────────────────────────────────────────
 function setLoadingProgress(pct, text) {
   const fill = document.getElementById('loading-fill');
   const txt  = document.getElementById('loading-text');
@@ -126,7 +155,7 @@ async function initCapacitor() {
   } catch (_) { /* berjalan tanpa Capacitor saat preview */ }
 }
 
-// ── Cegah Double-Tap Zoom (standar Android game) ─────────────
+// ── Touch Optimizations ───────────────────────────────────────
 document.addEventListener('touchstart', e => {
   if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
@@ -138,7 +167,7 @@ document.addEventListener('touchend', e => {
   lastTap = now;
 }, { passive: false });
 
-// ── Mulai ─────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────
 initCapacitor();
 boot().catch(err => {
   console.error('Boot error:', err);

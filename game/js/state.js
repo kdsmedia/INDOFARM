@@ -1,60 +1,96 @@
 // ═══════════════════════════════════════════════════════════════
-//  INDOFARM ADVENTURE — Game State Management
+//  INDOFARM ADVENTURE — Game State Management (Full Edition)
 // ═══════════════════════════════════════════════════════════════
 
-import { RESOURCES, HEROES, UPGRADES, PRESTIGE_BONUSES, CONFIG } from './data.js';
+import { RESOURCES, HEROES, UPGRADES, PRESTIGE_BONUSES, ACHIEVEMENTS, CONFIG } from './data.js';
 
-const SAVE_KEY = 'indofarm_save_v1';
+const SAVE_KEY = 'indofarm_save_v3';
 
 // ── Default State ─────────────────────────────────────────────
 function defaultState() {
   return {
-    version: 1,
+    version: 3,
     lastSave: Date.now(),
     tickCount: 0,
 
     // Resources
-    resources: { wheat: 0, wood: 50, stone: 30, gold: 10, gem: 0 },
-    maxResources: { wheat: 1000, wood: 1000, stone: 1000, gold: 5000, gem: 200 },
+    resources: { wheat: 50, wood: 80, stone: 50, gold: 30, gem: 0 },
+    maxResources: { wheat: 2000, wood: 2000, stone: 2000, gold: 9999, gem: 500 },
 
     // Farm (9 plots 3×3)
     farm: {
       plots: Array(9).fill(null).map(() => ({
-        crop: null,
-        stage: 0,
-        plantedAt: null,
-        lastTick: null,
+        crop: null, stage: 0, plantedAt: null, lastTick: null,
       })),
       unlockedCrops: ['wheat'],
     },
 
-    // Buildings placed: { buildingId: { level, builtAt } }
+    // Buildings: { buildingId: { level, builtAt } }
     buildings: {},
 
     // Heroes
     heroes: Object.fromEntries(
       Object.entries(HEROES).map(([id, def]) => [id, {
         unlocked: def.unlocked,
-        level: 1,
-        xp: 0,
-        task: 'idle',       // idle | farm | chop | mine | trade | guard | quest
-        questId: null,      // set when on quest
-        questStart: null,
-        questDuration: null,
+        level: 1, xp: 0,
+        task: 'idle',
+        questId: null, questStart: null, questDuration: null,
+        equipped: { weapon: null, armor: null, shield: null, accessory: null },
       }])
     ),
 
-    // Completed quest IDs
+    // Quests
     completedQuests: [],
 
-    // Upgrade levels: { upgradeId: level }
+    // Upgrades
     upgrades: Object.fromEntries(UPGRADES.map(u => [u.id, 0])),
 
     // Prestige
     prestigeLevel: 0,
     prestigePoints: 0,
     prestigeBonuses: Object.fromEntries(PRESTIGE_BONUSES.map(b => [b.id, 0])),
-    dragonSlain: false,     // set to true after dragon quest, enables prestige
+    dragonSlain: false,
+
+    // ── NEW: Inventory ──────────────────────────────────────
+    inventory: {}, // { itemId: quantity }
+
+    // ── NEW: Crafting ───────────────────────────────────────
+    crafting: {
+      queue: [], // [{ recipeId, startedAt, duration, outputItemId, outputQty }]
+    },
+
+    // ── NEW: Army ───────────────────────────────────────────
+    army: { soldier: 0, archer: 0, cavalry: 0, mage: 0 },
+    armyRecruiting: [], // [{ unitId, count, startedAt, duration }]
+
+    // ── NEW: Battle ──────────────────────────────────────────
+    lastBattleResult: null, // { won, enemyName, reward, log, timestamp }
+
+    // ── NEW: Daily Bonus ─────────────────────────────────────
+    dailyBonus: {
+      lastClaimDate: null, // 'YYYY-MM-DD'
+      streak: 0,
+      maxStreak: 0,
+    },
+
+    // ── NEW: Gacha ───────────────────────────────────────────
+    gacha: {
+      totalSpins: 0,
+      lastResult: null,
+    },
+
+    // ── NEW: Achievements ────────────────────────────────────
+    achievements: Object.fromEntries(
+      ACHIEVEMENTS.map(a => [a.id, { unlocked: false, claimedAt: null }])
+    ),
+
+    // ── NEW: Settings ────────────────────────────────────────
+    settings: {
+      soundOn: true,
+      musicOn: true,
+      notifOn: true,
+      language: 'id',
+    },
 
     // Stats
     stats: {
@@ -63,16 +99,21 @@ function defaultState() {
       totalPrestige: 0,
       totalGoldEarned: 0,
       playTimeSec: 0,
+      battlesWon: 0,
+      battlesLost: 0,
+      itemsCrafted: 0,
+      gachaSpins: 0,
+      maxLoginStreak: 0,
     },
   };
 }
 
-// ── GameState class ────────────────────────────────────────────
+// ── GameState Class ────────────────────────────────────────────
 export class GameState {
   constructor() {
     this.data = null;
     this._ticksSinceSave = 0;
-    this._offlineGain = null;   // set after load if offline progress
+    this._offlineGain = null;
   }
 
   load() {
@@ -80,12 +121,18 @@ export class GameState {
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        // Merge with defaults so new fields always exist
         this.data = deepMerge(defaultState(), saved);
         this._offlineGain = this._calcOfflineProgress();
         this.data.lastSave = Date.now();
       } else {
-        this.data = defaultState();
+        // Migration from old save key
+        const oldRaw = localStorage.getItem('indofarm_save_v1');
+        if (oldRaw) {
+          const saved = JSON.parse(oldRaw);
+          this.data = deepMerge(defaultState(), saved);
+        } else {
+          this.data = defaultState();
+        }
         this._offlineGain = null;
       }
     } catch (e) {
@@ -115,33 +162,27 @@ export class GameState {
 
   hardReset() {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem('indofarm_save_v1');
     this.data = defaultState();
   }
 
-  // ── Offline progress ───────────────────────────────────────
+  // ── Offline progress ──────────────────────────────────────
   _calcOfflineProgress() {
     const now = Date.now();
     const elapsed = (now - this.data.lastSave) / 1000;
-    if (elapsed < 30) return null; // < 30 sec, ignore
-
-    // Max offline: base + prestige bonus
+    if (elapsed < 30) return null;
     const prestigeHours = (this.data.prestigeBonuses?.offline_ext ?? 0) * 2;
     const maxSec = CONFIG.MAX_OFFLINE + prestigeHours * 3600;
     const effective = Math.min(elapsed, maxSec);
-
     return { elapsedSec: elapsed, effectiveSec: effective };
   }
 
-  getOfflineGain() {
-    return this._offlineGain;
-  }
-  clearOfflineGain() {
-    this._offlineGain = null;
-  }
+  getOfflineGain() { return this._offlineGain; }
+  clearOfflineGain() { this._offlineGain = null; }
 
-  // ── Resource helpers ───────────────────────────────────────
+  // ── Resource helpers ──────────────────────────────────────
   addResource(type, amount) {
-    if (!this.data.resources.hasOwnProperty(type)) return;
+    if (!Object.prototype.hasOwnProperty.call(this.data.resources, type)) return;
     const max = this.data.maxResources[type] ?? 99999;
     this.data.resources[type] = Math.min(max, this.data.resources[type] + amount);
     if (type === 'gold') this.data.stats.totalGoldEarned += amount;
@@ -149,11 +190,9 @@ export class GameState {
   }
 
   spendResource(costs) {
-    // Check first
     for (const [type, amount] of Object.entries(costs)) {
       if ((this.data.resources[type] ?? 0) < amount) return false;
     }
-    // Deduct
     for (const [type, amount] of Object.entries(costs)) {
       this.data.resources[type] -= amount;
     }
@@ -166,16 +205,38 @@ export class GameState {
     );
   }
 
-  // ── Prestige reset ─────────────────────────────────────────
+  // ── Inventory helpers ─────────────────────────────────────
+  addItem(itemId, qty = 1) {
+    this.data.inventory[itemId] = (this.data.inventory[itemId] ?? 0) + qty;
+  }
+
+  removeItem(itemId, qty = 1) {
+    const cur = this.data.inventory[itemId] ?? 0;
+    if (cur < qty) return false;
+    this.data.inventory[itemId] = cur - qty;
+    if (this.data.inventory[itemId] <= 0) delete this.data.inventory[itemId];
+    return true;
+  }
+
+  hasItem(itemId, qty = 1) {
+    return (this.data.inventory[itemId] ?? 0) >= qty;
+  }
+
+  // ── Prestige reset ────────────────────────────────────────
   prestigeReset() {
     const saved = {
       prestigeLevel:   this.data.prestigeLevel + 1,
       prestigePoints:  this.data.prestigePoints + 1,
       prestigeBonuses: this.data.prestigeBonuses,
       upgrades:        this.data.upgrades,
-      heroes:          this.data.heroes,  // keep heroes but reset task/quest
+      heroes:          this.data.heroes,
       completedQuests: this.data.completedQuests,
+      inventory:       this.data.inventory,
       stats:           { ...this.data.stats, totalPrestige: this.data.stats.totalPrestige + 1 },
+      achievements:    this.data.achievements,
+      settings:        this.data.settings,
+      dailyBonus:      this.data.dailyBonus,
+      gacha:           this.data.gacha,
       version:         this.data.version,
     };
 
@@ -185,16 +246,19 @@ export class GameState {
     this.data.prestigeBonuses = saved.prestigeBonuses;
     this.data.upgrades        = saved.upgrades;
     this.data.completedQuests = saved.completedQuests;
+    this.data.inventory       = saved.inventory;
     this.data.stats           = saved.stats;
+    this.data.achievements    = saved.achievements;
+    this.data.settings        = saved.settings;
+    this.data.dailyBonus      = saved.dailyBonus;
+    this.data.gacha           = saved.gacha;
 
-    // Reset hero quests but keep level/xp/unlocked
     for (const [id, h] of Object.entries(saved.heroes)) {
       this.data.heroes[id] = {
         ...h, task: 'idle', questId: null, questStart: null, questDuration: null,
       };
     }
 
-    // Apply prestige bonus: starting gold
     const startGoldBonus = (this.data.prestigeBonuses.start_gold ?? 0) * 100;
     this.data.resources.gold += startGoldBonus;
   }
