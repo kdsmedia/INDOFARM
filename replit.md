@@ -55,4 +55,23 @@ Model 3D dirender via `<model-viewer>` dari Google (CDN).
 
 ## User preferences
 
-_Belum ada._
+- **Wajib push ke GitHub setelah setiap perubahan kode:**
+  ```
+  git add .
+  git commit -m "Update proyek"
+  git push
+  ```
+  Token: `GITHUB_PERSONAL_ACCESS_TOKEN` | Repo: https://github.com/kdsmedia/INDOFARM
+
+## Fitur yang akan dibangun (roadmap)
+
+- Firebase Auth (Google Login) + AdMob + google-services.json
+- Bonus harian & AdReward (no-skip: bonus item, item gratis)
+- Spin gacha item
+- Inventory sistem
+- Simpan data offline (localStorage) + sinkronisasi akun Google via Firestore gratis
+- Gameplay lengkap: bertani, petualangan, bertarung, menambang, quest, jual beli,
+  pertahanan, istirahat, membangun, menebang, mengolah, upgrade, berdagang
+- Karakter bisa berjalan (animasi Three.js)
+- Lobby pemilihan karakter utama (pemimpin/tokoh yang bisa dioperasikan)
+- Simulasi pertempuran antar kerajaan (battle visual pasukan, durasi natural)
