@@ -105,6 +105,12 @@ function defaultState() {
       gachaSpins: 0,
       maxLoginStreak: 0,
     },
+
+    // ── NEW: Character Selection ─────────────────────────────
+    selectedHero: 'barbarian', // hero yang dipilih di lobby
+
+    // ── NEW: Cloud Account ───────────────────────────────────
+    cloudUser: null, // { uid, displayName, email, photoURL } or null
   };
 }
 

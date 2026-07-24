@@ -13,21 +13,27 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- Three.js via importmap (CDN, tidak butuh bundler) -->
+  <!-- model-viewer — untuk 3D karakter di lobby & asset browser -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+  <!-- Import Map: Three.js + Firebase v10 Modular ESM -->
   <script type="importmap">
   {
     "imports": {
-      "three":          "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-      "three/addons/":  "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      "three":                  "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/":          "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/",
+      "firebase/app":           "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+      "firebase/auth":          "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+      "firebase/firestore":     "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
     }
   }
   </script>
 </head>
 <body>
-  <!-- Root aplikasi game -->
+  <!-- Root aplikasi game — diisi oleh lobby.js + ui.js -->
   <div id="app"></div>
 
-  <!-- Entry point game (ES6 module) -->
+  <!-- Entry point utama (ES6 module) -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

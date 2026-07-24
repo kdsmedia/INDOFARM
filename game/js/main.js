@@ -1,47 +1,83 @@
 // ═══════════════════════════════════════════════════════════════
 //  INDOFARM ADVENTURE — Entry Point & Game Loop (Full Edition)
+//  Flow: Lobby → Auth → Char Select → Boot Game
 // ═══════════════════════════════════════════════════════════════
 
 import { GameState }    from './state.js';
 import { WorldEngine }  from './engine.js';
 import { GameUI }       from './ui.js';
+import { LobbyManager } from './lobby.js';
+import { FirebaseService } from './firebase.js';
+import { AdMobService } from './admob.js';
+import { BattleSim }    from './battlesim.js';
 import {
   ResourceSystem, FarmSystem, QuestSystem,
   CraftSystem, ArmySystem, AchievementSystem, DailySystem,
 } from './systems.js';
 import { CONFIG, CROPS, BUILDINGS } from './data.js';
 
-// ── Init State ─────────────────────────────────────────────────
+// ── Global State ───────────────────────────────────────────────
 const state = new GameState();
-state.load();
 
-// ── Init UI ────────────────────────────────────────────────────
-const ui = new GameUI(state, null, onStateChange);
-ui.init();
+let ui      = null;
+let engine  = null;
+let tickCnt = 0;
 
-// ── Init Engine ────────────────────────────────────────────────
-const canvas = document.getElementById('game-canvas');
-const engine = new WorldEngine(canvas);
-ui.engine = engine;
+// ── Step 1: Show Lobby (Splash → Login → Char Select) ─────────
+const lobby = new LobbyManager(async ({ heroId, user }) => {
+  // Save selected hero & cloud user to state
+  state.load();
+  state.data.selectedHero = heroId;
+  state.data.cloudUser    = user
+    ? { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL }
+    : null;
 
-let tickCount = 0;
+  // If logged in, attempt to merge cloud save
+  if (user && FirebaseService.isConfigured) {
+    try {
+      const cloud = await FirebaseService.loadFromCloud();
+      if (cloud) {
+        _mergeCloudSave(state, cloud);
+        state.data.selectedHero = heroId; // keep lobby choice
+      }
+    } catch (_) { /* offline — use local save */ }
+  }
 
-// ── Boot ───────────────────────────────────────────────────────
+  state.save();
+  await boot();
+});
+
+lobby.show();
+
+// Initialize AdMob (silently, won't block game)
+AdMobService.init().catch(() => {});
+
+// ── Step 2: Boot Game ─────────────────────────────────────────
 async function boot() {
   setLoadingProgress(5, 'Menginisialisasi...');
 
+  // Build UI skeleton
+  ui = new GameUI(state, null, onStateChange, { BattleSim, AdMobService });
+  ui.init();
+
+  // Init 3D engine
+  const canvas = document.getElementById('game-canvas');
+  engine = new WorldEngine(canvas);
+  ui.engine = engine;
+
+  setLoadingProgress(30, 'Memuat dunia 3D...');
   await engine.init();
-  setLoadingProgress(40, 'Memuat dunia 3D...');
 
   engine.onReady(() => {
     setLoadingProgress(100, 'Siap!');
     setTimeout(hideLoading, 500);
   });
 
-  setLoadingProgress(70, 'Sinkronisasi data...');
+  setLoadingProgress(60, 'Sinkronisasi data...');
   engine.syncState(state.data, CROPS, BUILDINGS);
+  engine.setSelectedHero(state.data.selectedHero);
 
-  setLoadingProgress(90, 'Menghitung progres offline...');
+  setLoadingProgress(85, 'Menghitung progres offline...');
 
   // Offline progress
   const offlineGain = state.getOfflineGain();
@@ -51,20 +87,70 @@ async function boot() {
     ui.showOfflineDialog(gained, offlineGain.effectiveSec);
   }
 
-  // Check daily bonus on boot
+  // Daily bonus nudge
   _checkDailyBonusOnBoot();
 
   ui.renderAll();
   startGameLoop();
+  initCapacitor();
+
+  // Auto cloud save every 5 minutes if logged in
+  if (state.data.cloudUser) {
+    setInterval(_cloudSave, 5 * 60 * 1000);
+  }
 }
 
-// ── Daily Bonus Auto-Check ────────────────────────────────────
+// ── Daily Bonus Nudge ────────────────────────────────────────
 function _checkDailyBonusOnBoot() {
   if (DailySystem.canClaim(state.data)) {
-    // Nudge user to claim (don't auto-claim)
     setTimeout(() => {
-      ui.showToast('🎁 Bonus harian tersedia! Buka tab Bonus.', 'info');
-    }, 2000);
+      ui?.showToast('🎁 Bonus harian tersedia! Buka tab Bonus.', 'info');
+    }, 2500);
+  }
+}
+
+// ── Cloud Save ────────────────────────────────────────────────
+async function _cloudSave() {
+  if (!state.data.cloudUser) return;
+  const ok = await FirebaseService.saveToCloud(state.data);
+  if (ok) ui?.showToast('☁️ Tersimpan ke cloud!', 'info');
+}
+
+// ── Cloud Save Merge ─────────────────────────────────────────
+function _mergeCloudSave(localState, cloud) {
+  // Merge cloud data into local state (cloud wins for progress fields)
+  const d = localState.data;
+  const c = cloud;
+
+  // Compare totalGoldEarned to decide which is "ahead"
+  const localGold = d.stats?.totalGoldEarned ?? 0;
+  const cloudGold = c.stats?.totalGoldEarned ?? 0;
+
+  if (cloudGold > localGold) {
+    // Cloud is further ahead — use cloud data
+    Object.assign(d.resources,       c.resources       ?? {});
+    Object.assign(d.buildings,       c.buildings       ?? {});
+    Object.assign(d.upgrades,        c.upgrades        ?? {});
+    Object.assign(d.inventory,       c.inventory       ?? {});
+    Object.assign(d.army,            c.army            ?? {});
+    Object.assign(d.achievements,    c.achievements    ?? {});
+    Object.assign(d.stats,           c.stats           ?? {});
+    Object.assign(d.dailyBonus,      c.dailyBonus      ?? {});
+    Object.assign(d.prestigeBonuses, c.prestigeBonuses ?? {});
+    d.prestigeLevel  = c.prestigeLevel  ?? d.prestigeLevel;
+    d.prestigePoints = c.prestigePoints ?? d.prestigePoints;
+
+    // Merge heroes (keep higher XP)
+    for (const [id, ch] of Object.entries(c.heroes ?? {})) {
+      if (!d.heroes[id]) { d.heroes[id] = ch; continue; }
+      if ((ch.xp ?? 0) > (d.heroes[id].xp ?? 0)) {
+        Object.assign(d.heroes[id], ch);
+        d.heroes[id].task = 'idle';
+      }
+    }
+    console.log('[Cloud] Menggunakan data cloud (lebih maju)');
+  } else {
+    console.log('[Cloud] Menggunakan data lokal (lebih maju)');
   }
 }
 
@@ -75,56 +161,44 @@ function startGameLoop() {
 
 function tick() {
   const data = state.data;
-  tickCount++;
+  tickCnt++;
 
-  // Core systems
   ResourceSystem.tick(data);
   FarmSystem.tick(data);
 
-  // Quest completion check
   const doneQuests = QuestSystem.tick(data);
   if (doneQuests.length > 0) {
-    if (ui.activePanel === 'quest') ui.renderPanel('quest');
-    ui.showToast(`✅ Quest selesai! Buka tab Quest untuk klaim.`, 'success');
+    if (ui?.activePanel === 'quest') ui.renderPanel('quest');
+    ui?.showToast('✅ Quest selesai! Buka tab Quest untuk klaim.', 'success');
   }
 
-  // Crafting completion
   const doneCrafts = CraftSystem.tick(data);
   if (doneCrafts.length > 0) {
-    if (ui.activePanel === 'crafting') ui.renderPanel('crafting');
-    ui.showToast(`🔨 Item selesai dibuat!`, 'success');
+    if (ui?.activePanel === 'crafting') ui.renderPanel('crafting');
+    ui?.showToast('🔨 Item selesai dibuat!', 'success');
   }
 
-  // Army recruiting
   ArmySystem.tick(data);
 
-  // Achievement check every 5 ticks
-  if (tickCount % 5 === 0) {
+  if (tickCnt % 5 === 0) {
     const newAchs = AchievementSystem.check(data);
-    newAchs.forEach(ach => {
-      ui.showToast(`🏆 Pencapaian: ${ach.name}!`, 'success');
-    });
+    newAchs.forEach(ach => ui?.showToast(`🏆 Pencapaian: ${ach.name}!`, 'success'));
   }
 
-  // HUD update every tick
-  ui._renderHUD();
+  ui?._renderHUD();
 
-  // Panel update every 3 ticks (battery-friendly)
-  if (tickCount % 3 === 0) {
-    ui.renderPanel(ui.activePanel);
-    engine.syncState(state.data, CROPS, BUILDINGS);
+  if (tickCnt % 3 === 0) {
+    ui?.renderPanel(ui.activePanel);
+    engine?.syncState(data, CROPS, BUILDINGS);
   }
 
-  // Play time stats
-  data.stats.playTimeSec = data.stats.playTimeSec || 0;
-
-  // Auto-save
+  data.stats.playTimeSec = (data.stats.playTimeSec ?? 0) + 1;
   state.saveIfNeeded();
 }
 
 // ── State Change Callback ─────────────────────────────────────
 function onStateChange() {
-  engine.syncState(state.data, CROPS, BUILDINGS);
+  engine?.syncState(state.data, CROPS, BUILDINGS);
 }
 
 // ── Loading Helpers ───────────────────────────────────────────
@@ -149,10 +223,13 @@ async function initCapacitor() {
     const { App } = await import('@capacitor/app').catch(() => ({ App: null }));
     if (App) {
       App.addListener('appStateChange', ({ isActive }) => {
-        if (!isActive) state.save();
+        if (!isActive) {
+          state.save();
+          if (state.data.cloudUser) _cloudSave();
+        }
       });
     }
-  } catch (_) { /* berjalan tanpa Capacitor saat preview */ }
+  } catch (_) { /* browser mode */ }
 }
 
 // ── Touch Optimizations ───────────────────────────────────────
@@ -166,11 +243,3 @@ document.addEventListener('touchend', e => {
   if (now - lastTap < 300) e.preventDefault();
   lastTap = now;
 }, { passive: false });
-
-// ── Start ─────────────────────────────────────────────────────
-initCapacitor();
-boot().catch(err => {
-  console.error('Boot error:', err);
-  const txt = document.getElementById('loading-text');
-  if (txt) txt.textContent = '⚠️ Gagal memuat. Coba refresh.';
-});
