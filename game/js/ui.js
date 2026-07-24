@@ -869,37 +869,24 @@ export class GameUI {
       }
     });
     el.querySelectorAll('[data-ad]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Simulate watching ad (in production: show real AdMob rewarded ad)
-        this._openModal(`
-          <h3>📺 Tonton Iklan</h3>
-          <p class="modal-sub">Iklan sedang diputar... (simulasi)</p>
-          <div class="ad-simulate">
-            <div class="ad-timer" id="ad-timer">5</div>
-            <div class="ad-label">Menonton iklan...</div>
-          </div>
-          <button class="btn-ghost disabled" id="btn-ad-done" ontouchstart="">Tunggu...</button>
-        `);
-        let t = 5;
-        const iv = setInterval(() => {
-          t--;
-          const timerEl = document.getElementById('ad-timer');
-          const doneBtn = document.getElementById('btn-ad-done');
-          if (timerEl) timerEl.textContent = t;
-          if (t <= 0) {
-            clearInterval(iv);
-            if (doneBtn) { doneBtn.textContent = '✅ Klaim Reward!'; doneBtn.classList.remove('disabled'); }
-          }
-        }, 1000);
-        document.getElementById('btn-ad-done')?.addEventListener('click', () => {
-          if (document.getElementById('btn-ad-done')?.classList.contains('disabled')) return;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        // Use real AdMob or simulated ad (both no-skip, 30s)
+        const adSvc = this._AdMobService;
+        const result = adSvc
+          ? await adSvc.showRewarded('free_item')
+          : { ok: true, earned: false };
+        btn.disabled = false;
+        btn.textContent = '▶ Tonton';
+        if (result.earned || (!adSvc)) {
+          // For browser without AdMob, the simulate already blocks until complete
           const r = DailySystem.claimAdReward(state);
           if (r.ok) {
-            this._closeModal();
             this.showToast(`📺 Reward: ${r.reward.desc}!`, 'success');
             this.renderAll(); this.onStateChange();
           }
-        });
+        }
       });
     });
   }
