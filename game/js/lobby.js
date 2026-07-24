@@ -236,16 +236,7 @@ export class LobbyManager {
     grid.innerHTML = Object.entries(HEROES).map(([id, h]) => `
       <div class="cs-card${h.unlocked ? '' : ' cs-locked'}" data-cid="${id}">
         <div class="cs-model-wrap">
-          <model-viewer
-            src="${h.model}"
-            auto-rotate
-            camera-controls
-            shadow-intensity="0"
-            environment-image="neutral"
-            tone-mapping="neutral"
-            style="width:100%;height:150px;background:transparent"
-            alt="${h.name}">
-          </model-viewer>
+          <div class="cs-hero-art" role="img" aria-label="${h.name}">${h.icon}</div>
         </div>
         <div class="cs-info">
           <div class="cs-hero-name">${h.icon} ${h.name}</div>

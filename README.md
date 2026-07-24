@@ -1,195 +1,117 @@
-# 🏰 INDOFARM ADVENTURE
-### Game Idle Farm RPG — Android (APK) · v2.1
-**Developer:** ALTOMEDIA · **Package:** com.altomedia.indofarm
+# INDOFARM ADVENTURE
 
-> Game idle farm adventure bertemakan dunia medieval dengan nuansa IndoFantasy.  
-> Platform: **Android APK** — dikembangkan dengan Three.js + Capacitor.js  
-> Backend: **Firebase Auth + Firestore** (altomedia-8f793) · Ads: **AdMob Rewarded (no-skip)**  
-> AdMob App ID: `ca-app-pub-6881903056221433~6902713015`
+## Aplikasi Game Android Native
 
----
+INDOFARM ADVENTURE adalah game idle farm RPG medieval untuk Android dengan package:
 
-## 🎯 Visi & Konsep
-
-**INDOFARM ADVENTURE** adalah game idle RPG **Android** dengan tampilan **2D Top-Down** bergaya Stardew Valley yang menggunakan render 3D langsung via Three.js. Pemain membangun desa medieval, menugaskan pahlawan ke berbagai pekerjaan, dan mengirim mereka ke petualangan.
-
-### Loop Gameplay Utama
-```
-🌾 FARM → 🪵 RESOURCE → 🏰 BUILD → ⚔️ QUEST → ⬆️ UPGRADE → 🔄 PRESTIGE
+```text
+com.altomedia.indofarm
 ```
 
----
+Game ini didistribusikan sebagai APK Android melalui Capacitor. Tidak ada produk
+web terpisah, katalog aset, atau mode permainan non-Android. Folder `game/`
+adalah bundle internal yang dimasukkan ke APK oleh Capacitor.
 
-## 📱 Tech Stack
+## Fitur Game
 
-| Layer | Teknologi |
+- Dunia 3D top-down menggunakan Three.js dan GLTF animation rig.
+- Pertanian, produksi kayu/batu, bangunan, pasar, crafting, inventori, dan gacha.
+- Quest berurutan dari Sarang Goblin sampai Sarang Naga Merah.
+- Enam pahlawan dengan kemampuan produksi, statistik, equipment, dan quest power.
+- Rekrutmen pasukan, perang kerajaan, simulasi pertempuran, peta zona, achievement,
+  upgrade, daily bonus, dan prestige.
+- Firebase Authentication Google Sign-In dan Firestore cloud save melalui layanan
+  native Android.
+- Rewarded AdMob native dengan reward hanya diberikan setelah iklan selesai.
+- Penyimpanan lokal, cloud merge berbasis timestamp, offline progress, dan
+  penyimpanan otomatis saat aplikasi masuk background.
+
+## Teknologi Android
+
+| Komponen | Teknologi |
 |---|---|
-| **Game Engine** | Three.js 0.164 + WebGL |
-| **Animasi** | Three.js AnimationMixer + GLTF Walk Rig |
-| **UI** | Vanilla JS DOM · Cinzel + Inter font |
-| **Auth** | Firebase v10 Modular · Google Sign-In |
-| **Cloud Save** | Firestore (free tier: 1GB, 50K reads/day) |
-| **Ads** | AdMob Rewarded Video (no-skip, 30 detik) |
-| **Native Shell** | Capacitor.js v6 → APK Android |
-| **Asset Server** | Python HTTP (server.py) |
+| Android app shell | Capacitor 6 |
+| Rendering game | Three.js 0.164 + WebGL |
+| Authentication | Firebase Auth + Capacitor Google Auth |
+| Cloud save | Firebase Firestore |
+| Rewarded ads | Capacitor AdMob |
+| Native app ID | `com.altomedia.indofarm` |
+| Target output | APK release |
 
----
+## Build APK
 
-## 🎮 20 Layar / Panel Game
+Prasyarat:
 
-| # | Layar | Keterangan |
-|---|---|---|
-| 1 | **Splash Screen** | Loading animasi + bintang |
-| 2 | **Login (Google)** | Firebase Auth · Google Sign-In |
-| 3 | **Pilih Karakter** | 6 karakter KayKit 3D interaktif |
-| 4 | **Dunia 3D** | Three.js top-down dengan animasi berjalan |
-| 5 | **Farm** 🌾 | Bertani — tanam & panen 5 jenis tanaman |
-| 6 | **Bangun** 🏰 | 10 bangunan — produksi, ekonomi, militer |
-| 7 | **Quest** ⚔️ | 9 quest + petualangan pahlawan |
-| 8 | **Pahlawan** 👤 | 6 hero · task assignment · equipment |
-| 9 | **Inventori** 🎒 | Item, senjata, armor, aksesori |
-| 10 | **Kerajinan** 🔨 | 13 resep crafting · mengolah bahan |
-| 11 | **Pasar** 🏪 | Jual beli & berdagang |
-| 12 | **Gacha** 🎰 | Spin bonus item (14 item pool) |
-| 13 | **Bonus Harian** 🎁 | Streak 7 hari + AdReward no-skip |
-| 14 | **Perang** 🗡️ | Rekrut pasukan · serang 5 kerajaan |
-| 15 | **Simulasi Tempur** 💥 | Visual battle animasi nyata |
-| 16 | **Peta** 🗺️ | 10 zona wilayah |
-| 17 | **Upgrade** ⬆️ | 12 upgrade permanen |
-| 18 | **Prestige** 🔄 | Reset dengan 5 bonus abadi |
-| 19 | **Capaian** 🏆 | 18 achievement |
-| 20 | **Setting** ⚙️ | Akun · cloud sync · reset |
+- Node.js dan npm
+- Java/JDK
+- Android SDK dan Android SDK Platform sesuai konfigurasi Gradle
+- `google-services.json` di root proyek
+- Plugin Capacitor native terpasang melalui npm
+- Keystore release untuk signing APK
 
----
-
-## 👤 6 Karakter Pahlawan (KayKit Adventurers 2.0)
-
-| Karakter | Spesial | ATK | DEF | HP |
-|---|---|---|---|---|
-| 🪓 **Barbarian** | Kayu +80%, Batu +50% | 15 | 8 | 200 |
-| 🛡️ **Ksatria** | Quest Power ×2.0 | 12 | 20 | 250 |
-| 🔮 **Penyihir** | Permata ×2.0, Emas +30% | 25 | 5 | 120 |
-| 🏹 **Pemburu** | Gandum ×2.5, Farm ×2.0 | 18 | 10 | 160 |
-| 🗡️ **Pencuri** | Emas ×2.5 | 20 | 7 | 140 |
-| 🥷 **Rogue Bertopeng** | Emas ×3.0, Permata +50% 🔒 | 28 | 12 | 180 |
-
----
-
-## 🔥 Fitur Utama v2.0
-
-### ☁️ Firebase Auth + Firestore
-- **Google Sign-In** gratis via Firebase Authentication
-- **Cloud Save** via Firestore (free tier) — progres tersimpan di akun Google
-- Merge otomatis local vs cloud (ambil yang lebih maju)
-- Sinkron 5 menit sekali & saat menutup app
-
-### 📺 AdMob (No-Skip)
-- **Rewarded Video** untuk Bonus Harian & Item Gratis
-- Durasi 30 detik — wajib menonton penuh, tidak bisa di-skip
-- Native Android via `@capacitor-community/admob`
-- Browser: simulasi iklan visual (tidak perlu APK untuk test)
-
-### ⚔️ Visual Battle Simulation
-- Tampilan pertempuran animasi dengan pasukan bergerak
-- Log pertempuran real-time baris per baris
-- Efek visual: 💥 ⚡ 🔥 saat clash
-- Kemenangan/kekalahan dengan animasi flash
-
-### 🚶 Animasi Karakter Berjalan
-- Three.js `AnimationMixer` dengan GLTF walk rig
-- Karakter GLTF built-in animation diputar otomatis
-- **Pemimpin terpilih**: ukuran lebih besar, cincin emas berputar
-- Semua hero berpatroli di zona masing-masing
-
-### 🏰 Gameplay Lengkap
-- **Bertani**: 5 tanaman (Gandum, Wortel, Labu, Jagung, Beri)
-- **Menambang**: Tambang Batu otomatis
-- **Menebang**: Penggergajian otomatis
-- **Mengolah**: 13 resep crafting
-- **Quest**: 9 misi (Goblin → Naga Merah)
-- **Pertahanan**: Barak + pasukan (Prajurit, Pemanah, Kavaleri, Penyihir)
-- **Berdagang**: Pasar desa + jalur dagang
-- **Membangun**: 10 jenis bangunan
-- **Upgrade**: 12 peningkatan permanen
-- **Prestige**: 5 bonus abadi lintas reset
-
----
-
-## 🚀 Cara Menjalankan
+Perintah:
 
 ```bash
-# Asset Browser & Game Preview
-python server.py
-# → Buka http://localhost:5000/         (Asset Browser)
-# → Buka http://localhost:5000/game/    (Game)
+npm install
+npm run android:sync
+npm run android:build
 ```
 
-### Setup Firebase (Opsional — untuk cloud save)
-1. Buat project di [Firebase Console](https://console.firebase.google.com)
-2. Aktifkan: **Authentication → Google Sign-In** & **Firestore Database**
-3. Copy Web Config ke `game/js/firebase.js` → `FIREBASE_CONFIG`
+APK release dibuat oleh Gradle di:
 
-### Setup AdMob (Untuk APK Android)
-1. Daftarkan app di [AdMob Console](https://admob.google.com)
-2. Buat Rewarded Ad Unit IDs
-3. Isi `game/js/admob.js` → `AD_UNITS`
-4. Tambah `google-services.json` ke `android/app/`
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
 
-### Build APK
+Untuk membuka proyek native di Android Studio:
+
 ```bash
-npx cap sync android
-npx cap open android
-# Build via Android Studio → Generate Signed APK
+npm run android:open
 ```
 
----
+## Konfigurasi Layanan
 
-## 🗂️ Struktur File Penting
+### Firebase dan Google Sign-In
 
-```
+1. Pastikan package Android adalah `com.altomedia.indofarm`.
+2. Aktifkan Google Sign-In dan Firestore pada project Firebase.
+3. Pastikan OAuth client Android memakai SHA-1/SHA-256 keystore release.
+4. Letakkan `google-services.json` pada lokasi yang dibutuhkan proyek Android.
+5. Uji login, save, load, dan merge cloud pada perangkat Android.
+
+### AdMob
+
+Gunakan test ad unit saat development. Ganti ke production ad unit hanya untuk
+build rilis dan pastikan consent, privacy policy, batas iklan, serta penanganan
+iklan gagal sudah diuji.
+
+## Struktur Bundle Game
+
+```text
 game/
-  index.html           # Entry point + Firebase importmap
-  js/
-    main.js            # Boot + game loop + auth flow
-    firebase.js        # Firebase Auth + Firestore ← ISI CONFIG
-    admob.js           # AdMob rewarded video ← ISI AD UNIT ID
-    lobby.js           # Splash + Login + Character Select
-    battlesim.js       # Visual battle simulation
-    engine.js          # Three.js 3D world + AnimationMixer
-    ui.js              # 16 panels UI
-    state.js           # State management + cloud merge
-    systems.js         # Semua game systems
-    data.js            # Data & config
-  css/
-    style.css          # Game styles + Lobby + BattleSim + AdMob
+  index.html
+  css/style.css
+  js/main.js
+  js/engine.js
+  js/lobby.js
+  js/ui.js
+  js/state.js
+  js/systems.js
+  js/firebase.js
+  js/admob.js
+  js/battlesim.js
+  js/data.js
+  icons/
 ```
 
----
+## Verifikasi Sebelum Rilis
 
-## 📋 Roadmap
-
-- [x] 16 panel gameplay lengkap
-- [x] Three.js 3D world + AnimationMixer
-- [x] Firebase Auth (Google Sign-In)
-- [x] Firestore cloud save (free tier)
-- [x] AdMob rewarded video (no-skip)
-- [x] Lobby + character selection
-- [x] Visual battle simulation
-- [ ] Musik & sound effects
-- [ ] Push notification (Capacitor)
-- [ ] Lokalisasi (ID/EN)
-
----
-
-## 👨‍💻 Info Project
-
-| Item | Detail |
-|---|---|
-| Developer | kdsmedia |
-| Repository | https://github.com/kdsmedia/INDOFARM |
-| Target | Android 7.0+ |
-| Engine | Three.js + Capacitor.js |
-| Auth | Firebase v10 |
-| Aset | CC BY 4.0 |
-
-*Last updated: Juli 2026 — v2.0 Full Edition*
+- Build debug dan release berhasil.
+- APK terpasang pada Android 7.0 hingga versi Android terbaru yang ditargetkan.
+- Login Google dan cloud save berjalan.
+- Reward iklan tidak diberikan dua kali dan gagal dengan aman.
+- Save saat background/close memulihkan progres.
+- Quest gating, farm, crafting, recruitment, battle, prestige, dan offline
+  progress lolos regression test.
+- Keystore release, version code, icon, splash screen, dan privacy policy sudah
+  benar sebelum distribusi.

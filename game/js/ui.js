@@ -925,7 +925,7 @@ export class GameUI {
         btn.disabled = false;
         btn.textContent = '▶ Tonton';
         if (result.earned || (!adSvc)) {
-          // For browser without AdMob, the simulate already blocks until complete
+          // Native AdMob grants the reward only after the full video.
           const rewardId = AD_REWARDS[Number(btn.dataset.ad)]?.id;
           const r = DailySystem.claimAdReward(state, rewardId);
           if (r.ok) {

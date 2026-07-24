@@ -40,7 +40,7 @@ dapat memilih cara bermain:
 2. Bermain sebagai tamu.
 
 Login Google digunakan untuk menyimpan progres ke cloud jika Firebase telah
-dikonfigurasi. Mode tamu menyimpan progres hanya di perangkat atau browser
+dikonfigurasi. Mode tamu menyimpan progres hanya di perangkat
 yang digunakan.
 
 Setelah itu pemain memilih tokoh utama. Tokoh yang dipilih menjadi pemimpin

@@ -1,77 +1,31 @@
-# IndoFarm Adventure — Asset Browser & Game
+# IndoFarm Adventure — Android APK
 
-Browser asset dan fondasi game idle RPG Android. Jalankan `python server.py` untuk
-membuka browser asset di `/` dan prototype game di `/game/`.
+INDOFARM ADVENTURE adalah game idle farm RPG medieval yang didistribusikan
+sebagai APK Android dengan package `com.altomedia.indofarm`.
 
-## Pack yang tersedia
+## Arsitektur
 
-### 🖼 UI Assets (538 aset)
-Elemen UI 2D flat dalam PNG + SVG:
-- **BoxesBanners** — banner, kotak, text box
-- **ButtonsIcons** — icon button (circle/rounded/square, multi warna)
-- **ButtonsText** — text button, toggle on/off, input teks, premade button
-- **Icons** — hati, bintang, koin, audio, menu, kontrol UI
-- **Sliders** — wide dan slim slider berbagai gaya
+- Capacitor 6 sebagai shell aplikasi Android.
+- Bundle `game/` dimasukkan ke APK sebagai runtime game internal.
+- Three.js dan GLTF digunakan untuk dunia 3D dan animasi.
+- Firebase Auth/Firestore dipakai untuk login dan cloud save.
+- AdMob Capacitor dipakai untuk rewarded ads.
+- Tidak ada server aplikasi, katalog aset, atau distribusi aplikasi terpisah.
 
-### ⚔️ KayKit Adventurers 2.0 FREE (52 aset)
-Pack karakter & item 3D:
-- **Characters** — 6 model `.glb` (Barbarian, Knight, Mage, Ranger, Rogue, Rogue Hooded)
-- **Weapons & Items** — ~30 model `.gltf` (pedang, kapak, perisai, busur, dll.)
-- **Animations** — 2 rig animasi `.glb` (General, MovementBasic)
-- **Textures** — 5 texture karakter PNG
-- **Samples** — 8 preview PNG
+## Build
 
-### 🌿 Stylized Nature MegaKit (92 aset)
-Pack alam 3D stylized:
-- **Trees** — 20 model `.gltf` (CommonTree, DeadTree, TwistedTree, Pine — masing-masing 5 varian)
-- **Plants & Ground** — 24 model `.gltf` (Bush, Clover, Fern, Flower, Grass, Mushroom, Plant, Petal)
-- **Rocks & Paths** — 25 model `.gltf` (Pebble Round/Square, Rock Medium, RockPath Round/Square)
-- **Textures** — 20 texture PNG (bark, daun, rumput, batu, dll.)
-- **Previews** — 4 preview JPG
-
-### 🏰 Medieval Village MegaKit (936 file sumber/export)
-Bangunan medieval dalam export glTF, FBX, OBJ, material, binary, dan texture.
-
-### 🧥 Modular Character Outfits (121 file sumber/export)
-Outfit karakter modular dalam export glTF/FBX dan texture.
-
-## Audit asset
-
-Gunakan `python tools/audit_assets.py` untuk memeriksa jumlah file, format, file
-duplikat berdasarkan hash, dan validitas dasar image/SVG/glTF/GLB. Laporan terakhir
-tersimpan di `ASSET_AUDIT.md` dan `asset-audit.json`.
-
-Empat typo nama asset UI telah diberi nama baku; nama lama tetap dipertahankan agar
-referensi lama tidak rusak. Detailnya ada di `ASSET_AUDIT.md`.
-
-## Cara menjalankan
-
-```
-python server.py
+```bash
+npm install
+npm run android:sync
+npm run android:build
 ```
 
-Port 5000. Tidak perlu package eksternal — hanya Python stdlib.  
-Model 3D dirender via `<model-viewer>` dari Google (CDN).
+Build release membutuhkan Java, Android SDK/Gradle, dependency Capacitor,
+`google-services.json`, dan keystore release.
 
 ## User preferences
 
-- **Wajib push ke GitHub setelah setiap perubahan kode:**
-  ```
-  git add .
-  git commit -m "Update proyek"
-  git push
-  ```
-  Token: `GITHUB_PERSONAL_ACCESS_TOKEN` | Repo: https://github.com/kdsmedia/INDOFARM
-
-## Fitur yang akan dibangun (roadmap)
-
-- Firebase Auth (Google Login) + AdMob + google-services.json
-- Bonus harian & AdReward (no-skip: bonus item, item gratis)
-- Spin gacha item
-- Inventory sistem
-- Simpan data offline (localStorage) + sinkronisasi akun Google via Firestore gratis
-- Gameplay lengkap: bertani, petualangan, bertarung, menambang, quest, jual beli,
-  pertahanan, istirahat, membangun, menebang, mengolah, upgrade, berdagang
-- Karakter bisa berjalan (animasi Three.js)
-- Lobby pemilihan karakter utama (pemimpin/tokoh yang bisa dioperasikan)
-- Simulasi pertempuran antar kerajaan (battle visual pasukan, durasi natural)
+- Proyek ini harus tetap Android APK-only.
+- Jangan menambahkan server aplikasi, katalog aset, manifest mandiri,
+  workflow layanan, atau mode distribusi non-Android.
+- Pertahankan package ID `com.altomedia.indofarm`.

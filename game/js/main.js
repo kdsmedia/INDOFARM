@@ -242,7 +242,7 @@ async function initCapacitor() {
         }
       });
     }
-  } catch (_) { /* browser mode */ }
+  } catch (_) { /* native lifecycle plugin is optional during development */ }
 }
 
 // ── Touch Optimizations ───────────────────────────────────────

@@ -7,17 +7,15 @@
 import { initializeApp }           from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider,
-  signInWithPopup, signInWithCredential,
+  signInWithCredential,
   signOut, onAuthStateChanged,
 } from 'firebase/auth';
 import {
   getFirestore, doc, setDoc, getDoc, serverTimestamp,
 } from 'firebase/firestore';
 
-// ── Firebase Web Config ────────────────────────────────────────
-// Ambil dari Firebase Console → Project Settings → Your Apps → Web App → Config
-// CATATAN: ini adalah FIREBASE WEB CONFIG, berbeda dengan google-services.json Android.
-// google-services.json dipakai oleh Capacitor/native, config ini untuk web/Firestore.
+// ── Firebase project configuration ────────────────────────────
+// Used by the bundled Android runtime together with google-services.json.
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyDBM_PPd7uEAyGg8d2ILQ1bTx3A6KKFjBk",
   authDomain:        "altomedia-8f793.firebaseapp.com",
@@ -55,18 +53,10 @@ export const FirebaseService = {
   get isConfigured() { return IS_CONFIGURED && !!_auth; },
   currentUser: null,
 
-  // Google Sign-In
-  // - Android (Capacitor): pakai @capacitor-community/google-auth → signInWithCredential
-  // - Browser/dev: pakai signInWithPopup sebagai fallback pengembangan
+  // Google Sign-In through the native Capacitor plugin.
   async signInWithGoogle() {
     if (!_auth) return { ok: false, msg: 'Firebase belum dikonfigurasi.' };
-    // Cek apakah berjalan di native Android via Capacitor
-    const isNative = typeof window !== 'undefined'
-      && window.Capacitor?.isNativePlatform?.();
-    if (isNative) {
-      return this._signInNative();
-    }
-    return this._signInWebFallback();
+    return this._signInNative();
   },
 
   // Native Android: gunakan Capacitor Google Auth plugin
@@ -88,27 +78,6 @@ export const FirebaseService = {
       }
       console.warn('[Firebase] Native sign-in error:', e);
       return { ok: false, msg: 'Login gagal. Pastikan Google Play Services tersedia.' };
-    }
-  },
-
-  // Browser/dev fallback (hanya untuk testing di browser, bukan APK)
-  async _signInWebFallback() {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('profile');
-      provider.addScope('email');
-      const result = await signInWithPopup(_auth, provider);
-      this.currentUser = result.user;
-      return { ok: true, user: result.user };
-    } catch (e) {
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-        return { ok: false, msg: 'Login dibatalkan.' };
-      }
-      if (e.code === 'auth/network-request-failed') return { ok: false, msg: 'Tidak ada koneksi internet.' };
-      if (e.code === 'auth/unauthorized-domain') {
-        return { ok: false, msg: 'Login Google hanya tersedia di aplikasi Android. Buka via APK.' };
-      }
-      return { ok: false, msg: e.message };
     }
   },
 

@@ -245,6 +245,7 @@ export function resetPrestigeState(current) {
   next.prestigeBonuses = current.prestigeBonuses ?? next.prestigeBonuses;
   next.upgrades = current.upgrades ?? next.upgrades;
   next.inventory = current.inventory ?? next.inventory;
+  next.completedQuests = current.completedQuests ?? next.completedQuests;
   next.achievements = current.achievements ?? next.achievements;
   next.settings = current.settings ?? next.settings;
   next.dailyBonus = current.dailyBonus ?? next.dailyBonus;
