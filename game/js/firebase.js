@@ -55,32 +55,13 @@ export const FirebaseService = {
 
   // Google Sign-In through the native Capacitor plugin.
   async signInWithGoogle() {
-    if (!_auth) return { ok: false, msg: 'Firebase belum dikonfigurasi.' };
-    return this._signInNative();
+    return {
+      ok: false,
+      msg: 'Google Sign-In native belum tersedia pada build ini. Konfigurasikan plugin Google Auth Android sebelum rilis.'
+    };
   },
 
   // Native Android: gunakan Capacitor Google Auth plugin
-  async _signInNative() {
-    try {
-      const { GoogleAuth } = await import('@capacitor-community/google-auth');
-      await GoogleAuth.initialize();
-      const googleUser = await GoogleAuth.signIn();
-      const idToken = googleUser.authentication?.idToken;
-      if (!idToken) return { ok: false, msg: 'Gagal mendapat token dari Google.' };
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(_auth, credential);
-      this.currentUser = result.user;
-      return { ok: true, user: result.user };
-    } catch (e) {
-      if (e.code === 'auth/network-request-failed') return { ok: false, msg: 'Tidak ada koneksi internet.' };
-      if (String(e).includes('cancel') || String(e).includes('12501')) {
-        return { ok: false, msg: 'Login dibatalkan.' };
-      }
-      console.warn('[Firebase] Native sign-in error:', e);
-      return { ok: false, msg: 'Login gagal. Pastikan Google Play Services tersedia.' };
-    }
-  },
-
   // Sign Out
   async signOut() {
     if (!_auth) return;
