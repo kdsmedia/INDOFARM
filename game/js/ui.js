@@ -1276,9 +1276,55 @@ export class GameUI {
     const el    = document.getElementById('panel-settings');
     const state = this.state.data;
     const s     = state.settings;
-    el.innerHTML = `
-      <div class="panel-header"><h2>⚙️ Pengaturan</h2><p class="panel-sub">Sesuaikan game sesuai preferensimu</p></div>
+    const user  = state.cloudUser;
+    const hero  = state.selectedHero;
 
+    el.innerHTML = `
+      <div class="panel-header"><h2>⚙️ Pengaturan</h2><p class="panel-sub">Preferensi & opsi game</p></div>
+
+      <div class="section-title">👤 Akun</div>
+      ${user
+        ? `<div class="account-card">
+             <img src="${user.photoURL || ''}" class="acct-avatar" onerror="this.style.display='none'">
+             <div class="acct-info">
+               <div class="acct-name">${user.displayName || 'Petualang'}</div>
+               <div class="acct-email">${user.email || ''}</div>
+               <div class="acct-cloud-badge">☁️ Cloud Save Aktif</div>
+             </div>
+           </div>
+           <div class="settings-list" style="margin-top:10px">
+             <div class="setting-item">
+               <div class="setting-info"><div class="setting-name">☁️ Sinkron Cloud</div><div class="setting-desc">Upload progres ke Google Cloud sekarang</div></div>
+               <button class="btn-accent btn-sm" id="btn-cloud-save" ontouchstart="">☁️ Sync</button>
+             </div>
+             <div class="setting-item">
+               <div class="setting-info"><div class="setting-name">🚪 Logout</div><div class="setting-desc">Keluar dari akun Google</div></div>
+               <button class="btn-danger btn-sm" id="btn-logout" ontouchstart="">Logout</button>
+             </div>
+           </div>`
+        : `<div class="account-card">
+             <span style="font-size:2rem">🎮</span>
+             <div style="flex:1;margin-left:12px;">
+               <div class="acct-name">Mode Tamu</div>
+               <div class="acct-email">Progres hanya tersimpan di perangkat ini.</div>
+               <div style="font-size:0.7rem;color:#484f58;margin-top:4px;">Login Google untuk cloud save & sinkron antar perangkat.</div>
+             </div>
+           </div>`
+      }
+
+      ${hero ? `
+      <div class="section-title">⚔️ Tokoh Utama</div>
+      <div class="settings-list">
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-name">${this._getHeroName(hero)}</div>
+            <div class="setting-desc">Dipilih di lobby sebagai pemimpin pasukan</div>
+          </div>
+          <span class="setting-val" style="font-size:1.4rem">${this._getHeroIcon(hero)}</span>
+        </div>
+      </div>` : ''}
+
+      <div class="section-title">🔊 Audio</div>
       <div class="settings-list">
         <div class="setting-item">
           <div class="setting-info"><div class="setting-name">🔊 Suara Efek</div><div class="setting-desc">Suara saat aksi dalam game</div></div>
@@ -1297,12 +1343,12 @@ export class GameUI {
       <div class="section-title">💾 Data Game</div>
       <div class="settings-list">
         <div class="setting-item">
-          <div class="setting-info"><div class="setting-name">☁️ Simpan Sekarang</div><div class="setting-desc">Simpan progres ke perangkat</div></div>
+          <div class="setting-info"><div class="setting-name">💾 Simpan Lokal</div><div class="setting-desc">Simpan progres ke perangkat sekarang</div></div>
           <button class="btn-primary btn-sm" id="btn-manual-save" ontouchstart="">💾 Simpan</button>
         </div>
         <div class="setting-item">
-          <div class="setting-info"><div class="setting-name">ℹ️ Versi Game</div><div class="setting-desc">IndoFarm Adventure v1.0</div></div>
-          <span class="setting-val">v1.0</span>
+          <div class="setting-info"><div class="setting-name">ℹ️ Versi Game</div><div class="setting-desc">IndoFarm Adventure v2.0</div></div>
+          <span class="setting-val">v2.0</span>
         </div>
       </div>
 
@@ -1317,8 +1363,8 @@ export class GameUI {
       <div class="section-title">📖 Tentang Game</div>
       <div class="about-card">
         <div class="about-title">🏰 INDOFARM ADVENTURE</div>
-        <div class="about-sub">Game Idle Farm RPG Android</div>
-        <div class="about-info">Developer: kdsmedia<br>Engine: Three.js + Capacitor.js<br>Asset: KayKit · Stylized Nature · Medieval Village<br>Platform: Android 7.0+</div>
+        <div class="about-sub">Game Idle Farm RPG Android v2.0</div>
+        <div class="about-info">Developer: kdsmedia<br>Engine: Three.js + Capacitor.js<br>Auth: Firebase (Google Sign-In)<br>Cloud: Firestore (free tier)<br>Ads: AdMob Rewarded (no-skip)<br>Asset: KayKit · Stylized Nature · Medieval Village<br>Platform: Android 7.0+</div>
       </div>
     `;
 
@@ -1331,6 +1377,24 @@ export class GameUI {
     document.getElementById('btn-manual-save')?.addEventListener('click', () => {
       this.state.save();
       this.showToast('💾 Tersimpan!', 'success');
+    });
+    document.getElementById('btn-cloud-save')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-cloud-save');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+      try {
+        const { FirebaseService } = await import('./firebase.js');
+        const ok = await FirebaseService.saveToCloud(state);
+        this.showToast(ok ? '☁️ Tersimpan ke cloud!' : '⚠️ Cloud save gagal', ok ? 'success' : 'error');
+      } catch (_) { this.showToast('⚠️ Cloud save gagal', 'error'); }
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Sync'; }
+    });
+    document.getElementById('btn-logout')?.addEventListener('click', async () => {
+      const { FirebaseService } = await import('./firebase.js');
+      await FirebaseService.signOut();
+      state.cloudUser = null;
+      this.state.save();
+      this.showToast('👋 Logged out', 'info');
+      this._renderSettings();
     });
     document.getElementById('btn-reset')?.addEventListener('click', () => {
       this._openModal(`
@@ -1349,6 +1413,16 @@ export class GameUI {
       });
       document.getElementById('modal-cancel')?.addEventListener('click', () => this._closeModal());
     });
+  }
+
+  // Helper: get hero icon & name from selected hero id
+  _getHeroIcon(heroId) {
+    const icons = { barbarian:'🪓', knight:'🛡️', mage:'🔮', ranger:'🏹', rogue:'🗡️', rogue_hooded:'🥷' };
+    return icons[heroId] ?? '⚔️';
+  }
+  _getHeroName(heroId) {
+    const names = { barbarian:'Barbarian', knight:'Ksatria', mage:'Penyihir', ranger:'Pemburu', rogue:'Pencuri', rogue_hooded:'Rogue Bertopeng' };
+    return names[heroId] ?? heroId;
   }
 
   // ── Offline Dialog ────────────────────────────────────────
