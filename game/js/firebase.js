@@ -7,7 +7,8 @@
 import { initializeApp }           from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider,
-  signInWithPopup, signOut, onAuthStateChanged,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged,
 } from 'firebase/auth';
 import {
   getFirestore, doc, setDoc, getDoc, serverTimestamp,
@@ -54,21 +55,49 @@ export const FirebaseService = {
   get isConfigured() { return IS_CONFIGURED && !!_auth; },
   currentUser: null,
 
-  // Google Sign-In
+  // Google Sign-In (popup → redirect fallback)
   async signInWithGoogle() {
-    if (!_auth) return { ok: false, msg: 'Firebase belum dikonfigurasi. Lihat game/js/firebase.js.' };
+    if (!_auth) return { ok: false, msg: 'Firebase belum dikonfigurasi.' };
+    const provider = new GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
+    // Try popup first; fall back to redirect if blocked (iframe / mobile)
     try {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('profile');
-      provider.addScope('email');
       const result = await signInWithPopup(_auth, provider);
       this.currentUser = result.user;
       return { ok: true, user: result.user };
     } catch (e) {
-      if (e.code === 'auth/popup-closed-by-user') return { ok: false, msg: 'Login dibatalkan.' };
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        return { ok: false, msg: 'Login dibatalkan.' };
+      }
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+        // Redirect fallback
+        try {
+          await signInWithRedirect(_auth, provider);
+          return { ok: false, msg: 'redirect' }; // page will reload
+        } catch (re) {
+          return { ok: false, msg: re.message };
+        }
+      }
       if (e.code === 'auth/network-request-failed') return { ok: false, msg: 'Tidak ada koneksi internet.' };
+      if (e.code === 'auth/unauthorized-domain') return { ok: false, msg: 'Domain belum diizinkan di Firebase Console. Tambahkan domain ini di Authentication → Settings → Authorized domains.' };
       return { ok: false, msg: e.message };
     }
+  },
+
+  // Call once on page load to capture result after redirect login
+  async checkRedirectResult() {
+    if (!_auth) return null;
+    try {
+      const result = await getRedirectResult(_auth);
+      if (result?.user) {
+        this.currentUser = result.user;
+        return result.user;
+      }
+    } catch (e) {
+      console.warn('[Firebase] Redirect result error:', e.message);
+    }
+    return null;
   },
 
   // Sign Out
