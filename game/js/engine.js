@@ -8,7 +8,62 @@ import * as THREE from 'three';
 import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
 import { NATURE_MODELS, HEROES, CROPS } from './data.js';
 
-const ANIM_RIG = '/KayKit_Adventurers_2.0_FREE/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb';
+const ANIM_RIG         = '/KayKit_Adventurers_2.0_FREE/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb';
+const ANIM_RIG_GENERAL = '/KayKit_Adventurers_2.0_FREE/Animations/gltf/Rig_Medium/Rig_Medium_General.glb';
+
+// ── Waypoints tepat di atas jalan desa ────────────────────────
+const VILLAGE_WAYPOINTS = [
+  { x:-8,   z:-2.5 }, // 0  ujung barat jalan utama
+  { x:-5,   z:-2.5 }, // 1
+  { x:-2,   z:-2.5 }, // 2
+  { x: 0,   z:-2.5 }, // 3
+  { x: 2,   z:-2.5 }, // 4
+  { x: 3.5, z:-2.5 }, // 5  ← persimpangan
+  { x: 6,   z:-2.5 }, // 6
+  { x: 8,   z:-2.5 }, // 7  ujung timur
+  { x: 3.5, z: 4   }, // 8  utara (jalan vertikal)
+  { x: 3.5, z: 1   }, // 9
+  { x: 3.5, z:-1   }, // 10
+  { x: 3.5, z:-5   }, // 11
+  { x: 3.5, z:-7   }, // 12 selatan
+  { x:-4,   z: 3   }, // 13 area ladang
+  { x:-6,   z: 1   }, // 14 area hutan
+  { x: 1,   z:-1   }, // 15 pusat desa
+  { x:-2,   z:-4   }, // 16 area bangunan
+];
+
+// Rute yang bisa dipilih tiap karakter (indeks ke VILLAGE_WAYPOINTS)
+const HERO_ROUTES = [
+  [0,1,2,3,4,5,6,7,6,5,4,3,2,1],          // jalan utama bolak-balik
+  [8,9,10,5,11,12,11,5,10,9,8],            // jalan vertikal
+  [13,14,2,3,15,5,3,2,14,13],              // loop ladang
+  [5,10,9,8,9,10,5,11,16,5],              // loop bangunan
+  [0,2,3,15,4,5,9,8,9,5,6,5,16,3,1],     // jalan jauh
+  [14,13,2,15,3,5,9,10,5,3,2,13],         // tengah-desa
+];
+
+// Posisi dunia untuk zona quest
+const QUEST_ZONES = {
+  forest:   { x: 7,  z: 2   },
+  mine:     { x: 7,  z:-1   },
+  dungeon:  { x:-8,  z:-5   },
+  farmland: { x:-4,  z: 4   },
+  village:  { x: 1,  z:-3   },
+  default:  { x: 5,  z: 4   },
+};
+
+// Mapping aktivitas → nama clip animasi (prioritas dari kiri)
+const ACTIVITY_CLIPS = {
+  walk:    ['Walking_A','Walking_B','Walking_C'],
+  run:     ['Running_A','Running_B','Walking_A'],
+  idle:    ['Idle_A','Idle_B'],
+  harvest: ['Interact','Use_Item','Walking_A'],
+  mine:    ['Interact','Use_Item','Walking_A'],
+  craft:   ['Interact','Use_Item','Idle_A'],
+  hit:     ['Hit_A','Hit_B'],
+  death:   ['Death_A','Death_B'],
+  spawn:   ['Spawn_Ground','Spawn_Air'],
+};
 
 export class WorldEngine {
   constructor(canvas) {
@@ -20,20 +75,25 @@ export class WorldEngine {
     this.clock     = new THREE.Clock();
 
     // Tracked objects
-    this.heroMeshes    = {};   // heroId → { group, mixer, actions, baseX, baseZ, phase, onQuest, isLeader }
+    this.heroMeshes    = {};   // heroId → hero object
     this.farmMeshes    = [];
     this.treeMeshes    = [];
     this.buildingObjs  = {};
-    this.leaderRing    = null; // golden ring under selected hero
+    this.leaderRing    = null;
 
-    this._ready       = false;
-    this._loadQueue   = 0;
-    this._onReady     = null;
+    this._ready        = false;
+    this._loadQueue    = 0;
+    this._onReady      = null;
     this._selectedHero = null;
 
-    // Shared animation clip (walk) loaded from rig file
-    this._walkClip    = null;
-    this._rigLoaded   = false;
+    // Animation clips keyed by clip name
+    this._clips        = {};   // clipName → THREE.AnimationClip
+    this._rigLoaded    = false;
+    this._genRigLoaded = false;
+
+    // Battle 3D state
+    this._battleActive  = false;
+    this._battleHeroes  = [];  // temp hero objects placed in battle scene
   }
 
   // ── Init ─────────────────────────────────────────────────────
@@ -48,7 +108,7 @@ export class WorldEngine {
     this._buildZoneMarkers();
     this._setupResize();
     this._loadNatureDecorations();
-    this._loadWalkRig();
+    this._loadAnimRigs();   // load both Movement + General rigs
     this._startRenderLoop();
     return this;
   }
@@ -222,38 +282,64 @@ export class WorldEngine {
     }
   }
 
-  // ── Walk Rig ──────────────────────────────────────────────────
-  _loadWalkRig() {
-    this.loader.load(
-      ANIM_RIG,
-      (gltf) => {
-        // Find Walking_A clip specifically — animations[0] is Jump_Full_Long
-        const walkClip = gltf.animations.find(a => a.name === 'Walking_A')
-                      ?? gltf.animations.find(a => a.name.startsWith('Walking'))
-                      ?? gltf.animations[0];
-        if (walkClip) {
-          this._walkClip = walkClip;
-        }
-        this._rigLoaded = true;
-        // Apply to any heroes already loaded
-        for (const h of Object.values(this.heroMeshes)) {
-          if (!h.mixer && this._walkClip) this._attachAnim(h);
-        }
-      },
-      null,
-      () => { this._rigLoaded = true; } // fallback — proceed without anim
-    );
+  // ── Animation Rigs ────────────────────────────────────────────
+  _loadAnimRigs() {
+    let pending = 2;
+    const done = () => { if (--pending === 0) this._onAllRigsLoaded(); };
+
+    // Movement rig: Walking_A/B/C, Running_A/B, Jump_*
+    this.loader.load(ANIM_RIG, (gltf) => {
+      gltf.animations.forEach(c => { this._clips[c.name] = c; });
+      this._rigLoaded = true;
+      done();
+    }, null, () => { this._rigLoaded = true; done(); });
+
+    // General rig: Idle_A/B, Hit_A/B, Death_A/B, Interact, Use_Item …
+    this.loader.load(ANIM_RIG_GENERAL, (gltf) => {
+      gltf.animations.forEach(c => { this._clips[c.name] = c; });
+      this._genRigLoaded = true;
+      done();
+    }, null, () => { this._genRigLoaded = true; done(); });
   }
 
-  _attachAnim(heroObj) {
-    if (!this._walkClip || !heroObj?.group) return;
+  _onAllRigsLoaded() {
+    // Attach animations to any heroes already in the scene
+    for (const h of Object.values(this.heroMeshes)) {
+      if (!h.mixer) this._attachAllAnims(h);
+    }
+  }
+
+  // Attach all available clips to a hero via AnimationMixer
+  _attachAllAnims(heroObj) {
+    if (!heroObj?.group || Object.keys(this._clips).length === 0) return;
     try {
-      heroObj.mixer = new THREE.AnimationMixer(heroObj.group);
-      const action  = heroObj.mixer.clipAction(this._walkClip);
-      action.setLoop(THREE.LoopRepeat);
-      action.play();
-      heroObj.walkAction = action;
-    } catch (_) { /* model may not be compatible */ }
+      heroObj.mixer   = new THREE.AnimationMixer(heroObj.group);
+      heroObj.actions = {};
+      for (const [name, clip] of Object.entries(this._clips)) {
+        const action = heroObj.mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat);
+        heroObj.actions[name] = action;
+      }
+      // Start with walk
+      this._playClip(heroObj, 'walk');
+    } catch (_) { /* model geometry not compatible */ }
+  }
+
+  // Play a clip category (walk/idle/run/harvest/hit/death) on a hero
+  _playClip(heroObj, activity, crossfadeSec = 0.25) {
+    const names = ACTIVITY_CLIPS[activity] ?? ACTIVITY_CLIPS.walk;
+    const clip  = names.find(n => heroObj.actions?.[n]);
+    if (!clip || !heroObj.actions) return;
+    const next = heroObj.actions[clip];
+    if (!next) return;
+    if (heroObj._currentAction && heroObj._currentAction !== next) {
+      heroObj._currentAction.fadeOut(crossfadeSec);
+      next.reset().fadeIn(crossfadeSec).play();
+    } else {
+      next.reset().play();
+    }
+    heroObj._currentActivity = activity;
+    heroObj._currentAction   = next;
   }
 
   // ── Nature Decorations ────────────────────────────────────────
@@ -356,28 +442,33 @@ export class WorldEngine {
       group.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       this.scene.add(group);
 
-      const z = def.worldZone;
+      const z         = def.worldZone;
+      const routeIdx  = Object.keys(this.heroMeshes).length % HERO_ROUTES.length;
       const heroObj = {
         group,
-        mixer:      null,
-        walkAction: null,
-        baseX:      z.x,
-        baseZ:      z.z,
-        phase:      Math.random() * Math.PI * 2,
-        onQuest:    false,
+        mixer:           null,
+        actions:         {},
+        _currentAction:  null,
+        _currentActivity:'walk',
+        baseX:           z.x,
+        baseZ:           z.z,
+        // Waypoint navigation
+        route:           HERO_ROUTES[routeIdx],
+        routeStep:       Math.floor(Math.random() * HERO_ROUTES[routeIdx].length),
+        idleTimer:       0,
+        // Quest
+        onQuest:         false,
+        questPos:        null,
+        // Battle
+        inBattle:        false,
         isLeader,
       };
+      group.position.set(z.x, 0, z.z); // start at home position
       this.heroMeshes[heroId] = heroObj;
 
-      // Attach hero's own embedded animations first
-      if (gltf.animations.length > 0) {
-        heroObj.mixer = new THREE.AnimationMixer(group);
-        const action  = heroObj.mixer.clipAction(gltf.animations[0]);
-        action.setLoop(THREE.LoopRepeat);
-        action.play();
-        heroObj.walkAction = action;
-      } else if (this._walkClip) {
-        this._attachAnim(heroObj);
+      // Attach rig animations if already loaded, otherwise they'll attach later
+      if (Object.keys(this._clips).length > 0) {
+        this._attachAllAnims(heroObj);
       }
 
       this._updateHeroVisibility(heroId, heroData);
@@ -407,23 +498,50 @@ export class WorldEngine {
         g.add(crown);
       }
       this.scene.add(g);
-      const z = def.worldZone;
+      const z        = def.worldZone;
+      const routeIdx = Object.keys(this.heroMeshes).length % HERO_ROUTES.length;
       this.heroMeshes[heroId] = {
-        group: g, mixer: null, walkAction: null,
+        group: g, mixer: null, actions: {}, _currentAction: null, _currentActivity: 'walk',
         baseX: z.x, baseZ: z.z,
-        phase: Math.random() * Math.PI * 2,
-        onQuest: false, isLeader,
+        route: HERO_ROUTES[routeIdx],
+        routeStep: Math.floor(Math.random() * HERO_ROUTES[routeIdx].length),
+        idleTimer: 0, onQuest: false, questPos: null, inBattle: false, isLeader,
       };
+      g.position.set(z.x, 0, z.z);
       this._updateHeroVisibility(heroId, heroData);
     });
   }
 
+  // ── Hero Visibility & Activity ────────────────────────────────
   _updateHeroVisibility(heroId, heroState) {
     const h = this.heroMeshes[heroId];
     if (!h) return;
-    const onQuest = heroState?.task === 'quest';
-    h.onQuest = onQuest;
-    h.group.visible = !onQuest;
+    const task = heroState?.task ?? 'idle';
+    h.onQuest = (task === 'quest');
+    h.group.visible = true; // always visible — quest heroes walk to quest zone
+
+    if (task === 'quest') {
+      // Find which quest zone the hero is in
+      const qid  = heroState?.questId ?? 'default';
+      h.questPos = QUEST_ZONES[qid] ?? QUEST_ZONES.default;
+    } else {
+      h.questPos = null;
+    }
+
+    // Switch animation based on task
+    if (h.mixer) {
+      const actMap = {
+        idle: 'idle', farming: 'harvest', mining: 'mine',
+        crafting: 'craft', quest: 'walk', default: 'walk',
+      };
+      this._playClip(h, actMap[task] ?? 'walk');
+    }
+  }
+
+  // Public: manually set hero activity & clip
+  setHeroActivity(heroId, activity) {
+    const h = this.heroMeshes[heroId];
+    if (h?.mixer) this._playClip(h, activity);
   }
 
   // ── Buildings ─────────────────────────────────────────────────
@@ -516,44 +634,100 @@ export class WorldEngine {
     tick();
   }
 
-  // ── Hero Animation ────────────────────────────────────────────
+  // ── Hero Animation — waypoint-based movement ─────────────────
   _animateHeroes(t, delta) {
     for (const [id, h] of Object.entries(this.heroMeshes)) {
-      if (!h.group.visible || h.onQuest) continue;
+      if (!h.group || h.inBattle) continue;
 
-      // Update animation mixer (walk cycle from GLTF)
+      // Always update mixer
       if (h.mixer) h.mixer.update(delta);
 
-      // Movement path
-      const isLeader = id === this._selectedHero;
-      const walkR    = isLeader ? 1.0 : 0.7;  // leader patrols wider area
-      const walkS    = isLeader ? 0.3 : 0.4;  // leader walks slightly slower, more dignified
-
-      const nx = h.baseX + Math.cos(t * walkS + h.phase) * walkR;
-      const nz = h.baseZ + Math.sin(t * walkS + h.phase) * walkR;
-
-      // Smoothly move
-      h.group.position.x += (nx - h.group.position.x) * 0.1;
-      h.group.position.z += (nz - h.group.position.z) * 0.1;
-
-      // Realistic footstep bobbing (only if no mixer animation)
+      // Footstep bob if no rig loaded
       if (!h.mixer) {
-        h.group.position.y = Math.abs(Math.sin(t * walkS * 2 + h.phase)) * 0.06;
+        h.group.position.y = Math.abs(Math.sin(t * 3)) * 0.05;
       } else {
         h.group.position.y = 0;
       }
 
-      // Face direction of movement
-      const dx = -Math.sin(t * walkS + h.phase);
-      const dz =  Math.cos(t * walkS + h.phase);
-      h.group.rotation.y = Math.atan2(dx, dz);
-
-      // Leader: update ring position
-      if (isLeader && this.leaderRing) {
-        this.leaderRing.position.x = h.group.position.x;
-        this.leaderRing.position.z = h.group.position.z;
-        this.leaderRing.rotation.z = t * 1.5; // spin ring
+      // ── Idle pause ──
+      if (h.idleTimer > 0) {
+        h.idleTimer -= delta;
+        if (h.idleTimer <= 0) {
+          h.idleTimer = 0;
+          this._playClip(h, h.onQuest ? 'walk' : 'walk');
+        }
+        this._updateLeaderRing(h, t);
+        continue;
       }
+
+      // ── Determine target position ──
+      let targetX, targetZ;
+      const isLeader = id === this._selectedHero;
+
+      if (h.onQuest && h.questPos) {
+        // Quest hero: walk toward quest zone, then small patrol circle there
+        const qx = h.questPos.x, qz = h.questPos.z;
+        const distToZone = Math.hypot(h.group.position.x - qx, h.group.position.z - qz);
+        if (distToZone < 1.5) {
+          // At quest zone — patrol small circle
+          targetX = qx + Math.cos(t * 0.4 + h.baseX) * 0.8;
+          targetZ = qz + Math.sin(t * 0.4 + h.baseX) * 0.8;
+        } else {
+          targetX = qx;
+          targetZ = qz;
+        }
+      } else {
+        // Normal waypoint navigation on village paths
+        const route = h.route ?? HERO_ROUTES[0];
+        const wpIdx = route[h.routeStep % route.length];
+        const wp    = VILLAGE_WAYPOINTS[wpIdx];
+        if (!wp) { h.routeStep = 0; continue; }
+        targetX = wp.x;
+        targetZ = wp.z;
+
+        // Check if reached waypoint
+        const dist = Math.hypot(h.group.position.x - targetX, h.group.position.z - targetZ);
+        if (dist < 0.2) {
+          h.routeStep = (h.routeStep + 1) % route.length;
+          // Occasionally pause to idle (10% chance at each waypoint)
+          if (!isLeader && Math.random() < 0.10) {
+            h.idleTimer = 0.8 + Math.random() * 1.5;
+            this._playClip(h, 'idle', 0.2);
+          }
+          continue;
+        }
+      }
+
+      // ── Move toward target ──
+      const speed = isLeader ? 1.6 : 2.0;
+      const dx    = targetX - h.group.position.x;
+      const dz    = targetZ - h.group.position.z;
+      const dist  = Math.hypot(dx, dz);
+      const step  = Math.min(speed * delta, dist);
+
+      h.group.position.x += (dx / dist) * step;
+      h.group.position.z += (dz / dist) * step;
+
+      // Face movement direction smoothly
+      const targetAngle = Math.atan2(dx, dz);
+      const da = targetAngle - h.group.rotation.y;
+      const da2 = ((da + Math.PI) % (Math.PI * 2)) - Math.PI; // shortest rotation
+      h.group.rotation.y += da2 * Math.min(delta * 8, 1);
+
+      // Ensure walk animation is playing
+      if (h._currentActivity !== 'walk' && h.idleTimer <= 0) {
+        this._playClip(h, 'walk', 0.3);
+      }
+
+      this._updateLeaderRing(h, t);
+    }
+  }
+
+  _updateLeaderRing(h, t) {
+    if (h.isLeader && this.leaderRing) {
+      this.leaderRing.position.x = h.group.position.x;
+      this.leaderRing.position.z = h.group.position.z;
+      this.leaderRing.rotation.z = t * 1.5;
     }
   }
 
@@ -589,6 +763,142 @@ export class WorldEngine {
     this.camera.top    =  frust;
     this.camera.bottom = -frust;
     this.camera.updateProjectionMatrix();
+  }
+
+  // ── Battle 3D System ─────────────────────────────────────────
+  // Pindahkan semua hero unlocked ke posisi battle, jalankan animasi pertarungan
+  // onDone dipanggil setelah selesai (berhasil/kalah)
+  startBattle3D(heroIds, won, onDone) {
+    if (this._battleActive) return;
+    this._battleActive = true;
+
+    const PLAYER_X = -3, ENEMY_X = 3, BATTLE_Z = -2.5;
+
+    // Simpan posisi asli dan pindah ke posisi battle
+    const participants = heroIds
+      .map(id => this.heroMeshes[id])
+      .filter(Boolean);
+
+    participants.forEach((h, i) => {
+      h.inBattle = true;
+      h._preBattlePos = h.group.position.clone();
+      h._preBattleRot = h.group.rotation.y;
+      h.group.position.set(PLAYER_X - i * 0.6, 0, BATTLE_Z + (i % 2) * 0.5);
+      h.group.rotation.y = Math.PI / 2; // hadap kanan (ke musuh)
+    });
+
+    // Buat musuh (capsule berwarna merah)
+    const enemyCount = Math.max(1, Math.min(participants.length + 1, 4));
+    const enemies    = [];
+    for (let i = 0; i < enemyCount; i++) {
+      const g   = new THREE.Group();
+      const hex = [0xcc2222, 0xaa1111, 0xdd3322][i % 3];
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.22, 0.5, 4, 8),
+        new THREE.MeshLambertMaterial({ color: hex })
+      );
+      body.position.y = 0.6;
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0x880000 })
+      );
+      head.position.y = 1.1;
+      // Horns
+      [-.15, .15].forEach(ox => {
+        const horn = new THREE.Mesh(
+          new THREE.ConeGeometry(0.05, 0.2, 4),
+          new THREE.MeshLambertMaterial({ color: 0x333333 })
+        );
+        horn.position.set(ox, 1.35, 0);
+        g.add(horn);
+      });
+      g.add(body); g.add(head);
+      g.position.set(ENEMY_X + i * 0.5, 0, BATTLE_Z + (i % 2) * 0.5);
+      g.rotation.y = -Math.PI / 2; // hadap kiri (ke player)
+      this.scene.add(g);
+      enemies.push(g);
+    }
+
+    // ── Phase 1 (0ms): CHARGE — semua berlari ke tengah ─────────
+    setTimeout(() => {
+      participants.forEach(h => {
+        if (h.mixer) this._playClip(h, 'run', 0.2);
+      });
+    }, 0);
+
+    // ── Phase 2 (1200ms): CLASH — heroes dan musuh berbenturan ──
+    let clashIv = null;
+    setTimeout(() => {
+      participants.forEach((h, i) => {
+        h.group.position.x = -0.6 - i * 0.35;
+        h.group.position.z = BATTLE_Z + (i % 2) * 0.4;
+        if (h.mixer) this._playClip(h, 'hit', 0.15);
+      });
+      enemies.forEach((e, i) => {
+        e.position.x = 0.5 + i * 0.35;
+        e.position.z = BATTLE_Z + (i % 2) * 0.4;
+      });
+
+      // Getaran posisi selama pertempuran
+      let shake = 0;
+      clashIv = setInterval(() => {
+        shake++;
+        participants.forEach((h, i) => {
+          h.group.position.x = -0.6 - i * 0.35 + (Math.random() - 0.5) * 0.12;
+          h.group.position.z = BATTLE_Z + (i % 2) * 0.4 + (Math.random() - 0.5) * 0.08;
+        });
+        enemies.forEach((e, i) => {
+          e.position.x = 0.5 + i * 0.35 + (Math.random() - 0.5) * 0.12;
+          e.position.z = BATTLE_Z + (i % 2) * 0.4 + (Math.random() - 0.5) * 0.08;
+        });
+        // Jika kalah: hero mundur
+        if (shake > 20 && !won) {
+          participants.forEach(h => {
+            h.group.position.x -= 0.03;
+          });
+        }
+        // Musuh yang mati: scale down
+        if (shake > 15 && won) {
+          enemies.slice(0, Math.ceil(enemies.length * 0.6)).forEach(e => {
+            e.scale.setScalar(Math.max(0.05, e.scale.x - 0.02));
+          });
+        }
+      }, 80);
+    }, 1200);
+
+    // ── Phase 3 (4000ms): AKHIR — kembalikan hero ke posisi ─────
+    setTimeout(() => {
+      if (clashIv) clearInterval(clashIv);
+
+      // Hapus musuh dengan fade out
+      enemies.forEach(e => {
+        let sc = e.scale.x;
+        const iv = setInterval(() => {
+          sc -= 0.05;
+          e.scale.setScalar(Math.max(0, sc));
+          if (sc <= 0) { clearInterval(iv); this.scene.remove(e); }
+        }, 30);
+      });
+
+      // Hero animation: kemenangan atau kekalahan
+      participants.forEach(h => {
+        if (h.mixer) this._playClip(h, won ? 'spawn' : 'death', 0.3);
+      });
+
+      // ── Phase 4 (5500ms): Kembali ke posisi normal ───────────
+      setTimeout(() => {
+        participants.forEach(h => {
+          h.inBattle = false;
+          if (h._preBattlePos) {
+            h.group.position.copy(h._preBattlePos);
+            h.group.rotation.y = h._preBattleRot ?? 0;
+          }
+          if (h.mixer) this._playClip(h, 'walk', 0.4);
+        });
+        this._battleActive = false;
+        onDone?.();
+      }, 1500);
+    }, 4000);
   }
 
   // ── World State Sync ──────────────────────────────────────────

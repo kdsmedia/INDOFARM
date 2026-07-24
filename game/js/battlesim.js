@@ -13,7 +13,8 @@ export const BattleSim = {
   // @param kingdom   AI_KINGDOMS entry
   // @param result    { won, log, reward, power, casualties }
   // @param onClose   callback when done
-  show(myArmy, kingdom, result, onClose) {
+  // @param engine    WorldEngine instance (opsional — untuk animasi 3D)
+  show(myArmy, kingdom, result, onClose, engine) {
     const el = document.createElement('div');
     el.id = 'battle-sim';
     el.innerHTML = `
@@ -51,10 +52,10 @@ export const BattleSim = {
       </div>
     `;
     document.body.appendChild(el);
-    this._run(el, myArmy, kingdom, result, onClose);
+    this._run(el, myArmy, kingdom, result, onClose, engine);
   },
 
-  _run(el, myArmy, kingdom, result, onClose) {
+  _run(el, myArmy, kingdom, result, onClose, engine) {
     const mineEl  = document.getElementById('bsim-mine');
     const enemyEl = document.getElementById('bsim-enemy');
     const logEl   = document.getElementById('bsim-log');
@@ -116,6 +117,15 @@ export const BattleSim = {
       const delay = line.includes('Ronde') ? 500 : 180;
       setTimeout(runLine, delay);
     };
+
+    // ── 3D Battle: gerakkan hero di world engine ─────────────────
+    if (engine && !engine._battleActive) {
+      const heroIds = Object.keys(engine.heroMeshes ?? {})
+        .filter(id => engine.heroMeshes[id]?.group?.visible);
+      engine.startBattle3D(heroIds.slice(0, 4), result.won, () => {
+        // Engine selesai — biarkan layar 2D tetap
+      });
+    }
 
     // Advance effect — armies move toward each other
     if (mineEl && enemyEl) {

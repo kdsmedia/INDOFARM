@@ -1053,7 +1053,7 @@ export class GameUI {
     if (this._BattleSim && myArmy && kingdom) {
       this._BattleSim.show(myArmy, kingdom, r, () => {
         this._renderBattle();
-      });
+      }, this.engine);
     } else {
       // Fallback: text modal
       const rewardStr = Object.entries(r.reward ?? {}).map(([res,amt]) => `${RESOURCES[res]?.icon ?? res}${amt}`).join(' ');
