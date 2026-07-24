@@ -8,6 +8,7 @@ import {
   GACHA_POOL, ARMY_UNITS, AI_KINGDOMS, ACHIEVEMENTS, DAILY_REWARDS, AD_REWARDS,
   xpToNextLevel
 } from './data.js';
+import { resetPrestigeState } from './state.js';
 
 // ── Resource System ───────────────────────────────────────────
 export const ResourceSystem = {
@@ -62,7 +63,6 @@ export const ResourceSystem = {
         }
       }
     }
-    state.stats.playTimeSec++;
   },
 
   applyOffline(state, seconds) {
@@ -297,6 +297,10 @@ export const QuestSystem = {
     if (!hState?.unlocked) return { ok: false, msg: 'Hero belum terbuka.' };
     if (hState.task === 'quest') return { ok: false, msg: 'Hero sudah dalam quest lain.' };
     if (hState.level < questDef.minLevel) return { ok: false, msg: `Butuh hero level ${questDef.minLevel}.` };
+    if (questDef.requires && !state.completedQuests.includes(questDef.requires)) {
+      const previous = QUESTS.find(q => q.id === questDef.requires);
+      return { ok: false, msg: `Selesaikan quest "${previous?.name ?? questDef.requires}" terlebih dahulu.` };
+    }
     const tavernLevel = state.buildings['tavern']?.level ?? 0;
     const tavernBonus = tavernLevel * 0.15;
     const upgradeBonus = (state.upgrades.fast_travel ?? 0) * 0.20;
@@ -324,24 +328,38 @@ export const QuestSystem = {
     if (elapsed < hState.questDuration) return { ok: false, remaining: hState.questDuration - elapsed };
     const questDef = QUESTS.find(q => q.id === hState.questId);
     if (!questDef) return { ok: false };
+    const questPower = this.getQuestPower(state, heroId);
+    // Quest power, hero attributes, equipment, and guard duty all affect
+    // the result. The reward curve is deterministic so a save/load cannot
+    // randomly duplicate or erase a completed quest.
+    const rewardMult = Math.max(0.75, Math.min(2.5, 0.65 + questPower / 4));
     const barrackLevel = state.buildings['barracks']?.level ?? 0;
-    const rewardMult = 1 + barrackLevel * 0.20;
+    const barrackRewardMult = 1 + barrackLevel * 0.20;
     const gemBonus = 1 + (state.upgrades.gem_polish ?? 0) * 0.50;
     const prestigeGem = state.prestigeBonuses?.gem_income ?? 0;
     const gained = {};
     for (const [res, amount] of Object.entries(questDef.reward)) {
-      let final = Math.floor(amount * rewardMult);
+      let final = Math.floor(amount * rewardMult * barrackRewardMult);
       if (res === 'gem') final = Math.floor(final * gemBonus) + prestigeGem;
       gained[res] = final;
       const max = state.maxResources[res] ?? 99999;
       state.resources[res] = Math.min(max, (state.resources[res] ?? 0) + final);
     }
-    HeroSystem.addXP(state, heroId, questDef.xpReward);
+    HeroSystem.addXP(state, heroId, Math.floor(questDef.xpReward * Math.min(2, 0.85 + questPower / 5)));
     if (hState.questId === 'dragon') state.dragonSlain = true;
     state.stats.totalQuestsCompleted++;
     if (!state.completedQuests.includes(hState.questId)) state.completedQuests.push(hState.questId);
     hState.task = 'idle'; hState.questId = null; hState.questStart = null; hState.questDuration = null;
     return { ok: true, reward: gained, heroId };
+  },
+
+  getQuestPower(state, heroId) {
+    const hero = state.heroes[heroId];
+    const def = HEROES[heroId];
+    if (!hero || !def) return 0;
+    const stats = HeroSystem.getEffectiveStats(state, heroId);
+    const guardCount = Object.values(state.heroes).filter(h => h.unlocked && h.task === 'guard').length;
+    return def.questPower + stats.atk / 50 + stats.def / 75 + guardCount * 0.1;
   },
 };
 
@@ -379,18 +397,9 @@ export const PrestigeSystem = {
   canPrestige(state) { return state.dragonSlain === true; },
   doPrestige(state) {
     if (!this.canPrestige(state)) return { ok: false, msg: 'Harus menyelesaikan quest Sarang Naga.' };
-    state.prestigeLevel++;
-    state.prestigePoints++;
-    state.dragonSlain = false;
-    state.resources = { wheat: 50, wood: 80, stone: 50, gold: 10, gem: 0 };
-    state.buildings = {};
-    state.farm.plots = Array(9).fill(null).map(() => ({ crop: null, stage: 0, plantedAt: null, lastTick: null }));
-    for (const hState of Object.values(state.heroes)) {
-      hState.task = 'idle'; hState.questId = null; hState.questStart = null; hState.questDuration = null;
-    }
-    const startGold = (state.prestigeBonuses?.start_gold ?? 0) * 100;
-    state.resources.gold = 10 + startGold;
-    state.stats.totalPrestige++;
+    // GameState owns the single reset policy so UI/system entry points cannot
+    // disagree about armies, queues, farms, or persistent progression.
+    Object.assign(state, resetPrestigeState(state));
     return { ok: true, level: state.prestigeLevel };
   },
   buyBonus(state, bonusId) {
@@ -564,9 +573,9 @@ export const DailySystem = {
     return { ok: true, reward: dayReward, streak };
   },
 
-  claimAdReward(state) {
-    const pool = AD_REWARDS;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+  claimAdReward(state, rewardId) {
+    const pick = AD_REWARDS.find(reward => reward.id === rewardId);
+    if (!pick) return { ok: false, msg: 'Hadiah iklan tidak ditemukan.' };
     if (pick.rewards.item) {
       state.inventory[pick.rewards.item] = (state.inventory[pick.rewards.item] ?? 0) + (pick.rewards.qty ?? 1);
     } else {

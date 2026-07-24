@@ -4,12 +4,12 @@
 
 import { RESOURCES, HEROES, UPGRADES, PRESTIGE_BONUSES, ACHIEVEMENTS, CONFIG } from './data.js';
 
-const SAVE_KEY = 'indofarm_save_v3';
+const SAVE_KEY = 'indofarm_save_v4';
 
 // ── Default State ─────────────────────────────────────────────
 function defaultState() {
   return {
-    version: 3,
+    version: 4,
     lastSave: Date.now(),
     tickCount: 0,
 
@@ -128,15 +128,16 @@ export class GameState {
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        this.data = deepMerge(defaultState(), saved);
+        this.data = deepMerge(defaultState(), migrateSave(saved));
         this._offlineGain = this._calcOfflineProgress();
-        this.data.lastSave = Date.now();
       } else {
-        // Migration from old save key
-        const oldRaw = localStorage.getItem('indofarm_save_v1');
+        // Migration from previous save keys. Keep the original timestamp so
+        // cloud merge can compare the actual save age, not app boot time.
+        const oldRaw = localStorage.getItem('indofarm_save_v3')
+          ?? localStorage.getItem('indofarm_save_v1');
         if (oldRaw) {
           const saved = JSON.parse(oldRaw);
-          this.data = deepMerge(defaultState(), saved);
+          this.data = deepMerge(defaultState(), migrateSave(saved));
         } else {
           this.data = defaultState();
         }
@@ -169,6 +170,7 @@ export class GameState {
 
   hardReset() {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem('indofarm_save_v3');
     localStorage.removeItem('indofarm_save_v1');
     this.data = defaultState();
   }
@@ -231,44 +233,50 @@ export class GameState {
 
   // ── Prestige reset ────────────────────────────────────────
   prestigeReset() {
-    const saved = {
-      prestigeLevel:   this.data.prestigeLevel + 1,
-      prestigePoints:  this.data.prestigePoints + 1,
-      prestigeBonuses: this.data.prestigeBonuses,
-      upgrades:        this.data.upgrades,
-      heroes:          this.data.heroes,
-      completedQuests: this.data.completedQuests,
-      inventory:       this.data.inventory,
-      stats:           { ...this.data.stats, totalPrestige: this.data.stats.totalPrestige + 1 },
-      achievements:    this.data.achievements,
-      settings:        this.data.settings,
-      dailyBonus:      this.data.dailyBonus,
-      gacha:           this.data.gacha,
-      version:         this.data.version,
-    };
-
-    this.data = defaultState();
-    this.data.prestigeLevel   = saved.prestigeLevel;
-    this.data.prestigePoints  = saved.prestigePoints;
-    this.data.prestigeBonuses = saved.prestigeBonuses;
-    this.data.upgrades        = saved.upgrades;
-    this.data.completedQuests = saved.completedQuests;
-    this.data.inventory       = saved.inventory;
-    this.data.stats           = saved.stats;
-    this.data.achievements    = saved.achievements;
-    this.data.settings        = saved.settings;
-    this.data.dailyBonus      = saved.dailyBonus;
-    this.data.gacha           = saved.gacha;
-
-    for (const [id, h] of Object.entries(saved.heroes)) {
-      this.data.heroes[id] = {
-        ...h, task: 'idle', questId: null, questStart: null, questDuration: null,
-      };
-    }
-
-    const startGoldBonus = (this.data.prestigeBonuses.start_gold ?? 0) * 100;
-    this.data.resources.gold += startGoldBonus;
+    this.data = resetPrestigeState(this.data);
   }
+}
+
+// Shared reset policy used by both GameState and the gameplay system.
+export function resetPrestigeState(current) {
+  const next = defaultState();
+  next.prestigeLevel = (current.prestigeLevel ?? 0) + 1;
+  next.prestigePoints = (current.prestigePoints ?? 0) + 1;
+  next.prestigeBonuses = current.prestigeBonuses ?? next.prestigeBonuses;
+  next.upgrades = current.upgrades ?? next.upgrades;
+  next.inventory = current.inventory ?? next.inventory;
+  next.achievements = current.achievements ?? next.achievements;
+  next.settings = current.settings ?? next.settings;
+  next.dailyBonus = current.dailyBonus ?? next.dailyBonus;
+  next.gacha = current.gacha ?? next.gacha;
+  next.selectedHero = current.selectedHero ?? next.selectedHero;
+  next.stats = {
+    ...next.stats,
+    ...(current.stats ?? {}),
+    totalPrestige: (current.stats?.totalPrestige ?? 0) + 1,
+  };
+
+  for (const [id, hero] of Object.entries(current.heroes ?? {})) {
+    if (!next.heroes[id]) continue;
+    next.heroes[id] = {
+      ...next.heroes[id],
+      ...hero,
+      task: 'idle',
+      questId: null,
+      questStart: null,
+      questDuration: null,
+    };
+  }
+
+  next.resources.gold += (next.prestigeBonuses.start_gold ?? 0) * 100;
+  return next;
+}
+
+function migrateSave(saved) {
+  if (!saved || typeof saved !== 'object') return saved;
+  // v3 already contains the extended state; v4 only formalizes the
+  // version and keeps all in-progress jobs instead of dropping them.
+  return { ...saved, version: Math.max(Number(saved.version) || 1, 4) };
 }
 
 // ── Deep merge helper ─────────────────────────────────────────

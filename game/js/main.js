@@ -83,6 +83,7 @@ async function boot() {
   const offlineGain = state.getOfflineGain();
   if (offlineGain && offlineGain.effectiveSec > 30) {
     const gained = ResourceSystem.applyOffline(state.data, offlineGain.effectiveSec);
+    state.data.stats.playTimeSec = (state.data.stats.playTimeSec ?? 0) + Math.floor(offlineGain.effectiveSec);
     state.clearOfflineGain();
     ui.showOfflineDialog(gained, offlineGain.effectiveSec);
   }
@@ -123,14 +124,24 @@ function _mergeCloudSave(localState, cloud) {
   const c = cloud;
 
   // Compare totalGoldEarned to decide which is "ahead"
+  const localSavedAt = Number(d.lastSave ?? 0);
+  const cloudSavedAt = Number(c.lastSave ?? c.savedAtMs ?? c.savedAt?.toMillis?.() ?? 0);
   const localGold = d.stats?.totalGoldEarned ?? 0;
   const cloudGold = c.stats?.totalGoldEarned ?? 0;
+  const cloudIsAhead = cloudSavedAt > localSavedAt
+    || (!cloudSavedAt && cloudGold > localGold);
 
-  if (cloudGold > localGold) {
+  if (cloudIsAhead) {
     // Cloud is further ahead — use cloud data
     Object.assign(d.resources,       c.resources       ?? {});
     Object.assign(d.buildings,       c.buildings       ?? {});
     Object.assign(d.upgrades,        c.upgrades        ?? {});
+    d.farm = c.farm ?? d.farm;
+    d.completedQuests = c.completedQuests ?? d.completedQuests;
+    d.crafting = c.crafting ?? d.crafting;
+    d.armyRecruiting = c.armyRecruiting ?? d.armyRecruiting;
+    d.lastBattleResult = c.lastBattleResult ?? d.lastBattleResult;
+    d.gacha = c.gacha ?? d.gacha;
     Object.assign(d.inventory,       c.inventory       ?? {});
     Object.assign(d.army,            c.army            ?? {});
     Object.assign(d.achievements,    c.achievements    ?? {});
@@ -139,6 +150,7 @@ function _mergeCloudSave(localState, cloud) {
     Object.assign(d.prestigeBonuses, c.prestigeBonuses ?? {});
     d.prestigeLevel  = c.prestigeLevel  ?? d.prestigeLevel;
     d.prestigePoints = c.prestigePoints ?? d.prestigePoints;
+    d.dragonSlain = c.dragonSlain ?? d.dragonSlain;
 
     // Merge heroes (keep higher XP)
     for (const [id, ch] of Object.entries(c.heroes ?? {})) {
@@ -192,6 +204,7 @@ function tick() {
     engine?.syncState(data, CROPS, BUILDINGS);
   }
 
+  // Advance the gameplay clock exactly once per game-loop tick.
   data.stats.playTimeSec = (data.stats.playTimeSec ?? 0) + 1;
   state.saveIfNeeded();
 }

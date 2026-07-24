@@ -6,7 +6,7 @@ import {
   RESOURCES, BUILDINGS, CROPS, QUESTS, HEROES, UPGRADES, PRESTIGE_BONUSES,
   ITEMS, CRAFTING_RECIPES, MARKET_BUY, MARKET_SELL_RATES,
   GACHA_POOL, ARMY_UNITS, AI_KINGDOMS, ACHIEVEMENTS, DAILY_REWARDS, AD_REWARDS,
-  MAP_ZONES, xpToNextLevel
+  MAP_ZONES, TASKS, xpToNextLevel
 } from './data.js';
 import {
   FarmSystem, BuildSystem, QuestSystem, HeroSystem, UpgradeSystem, PrestigeSystem,
@@ -334,6 +334,8 @@ export class GameUI {
       <div class="quest-list">
         ${QUESTS.map(q => {
           const onQuest = Object.entries(state.heroes).find(([,h]) => h.task === 'quest' && h.questId === q.id);
+          const requiredQuest = q.requires && QUESTS.find(prev => prev.id === q.requires);
+          const lockedByStory = Boolean(q.requires && !state.completedQuests.includes(q.requires));
           const elapsed = onQuest ? (Date.now() - onQuest[1].questStart) / 1000 : 0;
           const dur     = onQuest ? onQuest[1].questDuration : q.duration;
           const pct     = onQuest ? Math.min(100, (elapsed / dur) * 100) : 0;
@@ -344,7 +346,7 @@ export class GameUI {
               <div><div class="quest-name">${q.name}</div><div class="quest-diff">${q.difficulty} · Min Lv.${q.minLevel}</div></div>
               ${q.isPrestige ? '<span class="badge-prestige">PRESTIGE</span>' : ''}
             </div>
-            <div class="quest-desc">${q.description}</div>
+            <div class="quest-desc">${lockedByStory ? `🔒 Selesaikan "${requiredQuest?.name ?? q.requires}" terlebih dahulu.` : q.description}</div>
             <div class="quest-reward">Reward: ${Object.entries(q.reward).map(([r,a]) => `${RESOURCES[r]?.icon ?? r}${a}`).join(' ')} · ✨${q.xpReward}XP</div>
             ${onQuest ? `
               <div class="quest-progress">
@@ -352,7 +354,7 @@ export class GameUI {
                 <div class="quest-eta">${done ? '✅ Selesai!' : this._etaText(dur - elapsed)}</div>
               </div>
               ${done ? `<button class="btn-primary btn-sm" ontouchstart="" data-claim="${onQuest[0]}">🎁 Klaim Reward</button>` : ''}
-            ` : `<div class="quest-footer"><span class="quest-dur">⏱ ${this._etaText(q.duration)}</span><button class="btn-accent btn-sm" ontouchstart="" data-send-quest="${q.id}">Kirim Hero →</button></div>`}
+            ` : `<div class="quest-footer"><span class="quest-dur">⏱ ${this._etaText(q.duration)}</span>${lockedByStory ? '<span class="quest-locked">🔒 Terkunci</span>' : `<button class="btn-accent btn-sm" ontouchstart="" data-send-quest="${q.id}">Kirim Hero →</button>`}</div>`}
           </div>`;
         }).join('')}
       </div>
@@ -432,7 +434,7 @@ export class GameUI {
                   <div class="xp-bar"><div class="xp-fill" style="width:${xpPct}%"></div></div>
                   <span class="xp-text">${h.xp}/${xpNext}</span>
                 </div>
-                <div class="hero-task-row">Tugas: <b>${onQuest ? '⚔️ Quest — '+this._etaText((h.questDuration??0) - (Date.now()-h.questStart)/1000) : h.task}</b></div>
+                <div class="hero-task-row">Tugas: <b>${onQuest ? '⚔️ Quest — '+this._etaText((h.questDuration??0) - (Date.now()-h.questStart)/1000) : `${TASKS[h.task]?.icon ?? ''} ${TASKS[h.task]?.name ?? 'Istirahat'}`}</b></div>
                 <div class="hero-equip-row">
                   ${['weapon','armor','shield','accessory'].map(slot => {
                     const eqId = h.equipped[slot];
@@ -924,7 +926,8 @@ export class GameUI {
         btn.textContent = '▶ Tonton';
         if (result.earned || (!adSvc)) {
           // For browser without AdMob, the simulate already blocks until complete
-          const r = DailySystem.claimAdReward(state);
+          const rewardId = AD_REWARDS[Number(btn.dataset.ad)]?.id;
+          const r = DailySystem.claimAdReward(state, rewardId);
           if (r.ok) {
             this.showToast(`📺 Reward: ${r.reward.desc}!`, 'success');
             this.renderAll(); this.onStateChange();
@@ -1426,7 +1429,7 @@ export class GameUI {
       if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
       try {
         const { FirebaseService } = await import('./firebase.js');
-        const ok = await FirebaseService.saveToCloud(state);
+        const ok = await FirebaseService.saveToCloud(state.data);
         this.showToast(ok ? '☁️ Tersimpan ke cloud!' : '⚠️ Cloud save gagal', ok ? 'success' : 'error');
       } catch (_) { this.showToast('⚠️ Cloud save gagal', 'error'); }
       if (btn) { btn.disabled = false; btn.textContent = '☁️ Sync'; }

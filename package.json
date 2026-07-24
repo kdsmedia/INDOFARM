@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
     "@capacitor/core": "^6.2.0",
     "@capacitor/haptics": "^6.0.3",
     "@capacitor/preferences": "^6.0.3",
     "@capacitor/push-notifications": "^6.0.2",
-    "@capacitor-community/google-auth": "^3.4.0",
     "@capacitor-community/admob": "^6.0.0"
   },
   "devDependencies": {
@@ -24,5 +24,6 @@
   },
   "keywords": ["game", "idle", "android", "threejs", "capacitor"],
   "author": "kdsmedia",
+  "type": "module",
   "license": "MIT"
 }

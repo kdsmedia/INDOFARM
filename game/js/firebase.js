@@ -137,12 +137,18 @@ export const FirebaseService = {
       const slim = {
         resources:       saveData.resources        ?? {},
         maxResources:    saveData.maxResources      ?? {},
-        farm:            { unlockedCrops: saveData.farm?.unlockedCrops ?? ['wheat'] },
+        farm:            saveData.farm ?? { plots: [], unlockedCrops: ['wheat'] },
         buildings:       saveData.buildings         ?? {},
         heroes:          this._slimHeroes(saveData.heroes),
         upgrades:        saveData.upgrades          ?? {},
         inventory:       saveData.inventory         ?? {},
         army:            saveData.army              ?? {},
+        armyRecruiting:  saveData.armyRecruiting    ?? [],
+        crafting:        saveData.crafting           ?? { queue: [] },
+        lastBattleResult:saveData.lastBattleResult  ?? null,
+        completedQuests: saveData.completedQuests   ?? [],
+        gacha:           saveData.gacha              ?? {},
+        dragonSlain:     saveData.dragonSlain        ?? false,
         prestigeLevel:   saveData.prestigeLevel     ?? 0,
         prestigePoints:  saveData.prestigePoints    ?? 0,
         prestigeBonuses: saveData.prestigeBonuses   ?? {},
@@ -150,7 +156,9 @@ export const FirebaseService = {
         stats:           saveData.stats             ?? {},
         dailyBonus:      saveData.dailyBonus        ?? {},
         selectedHero:    saveData.selectedHero      ?? 'barbarian',
-        version:         saveData.version           ?? 3,
+        lastSave:        saveData.lastSave           ?? Date.now(),
+        savedAtMs:       Date.now(),
+        version:         saveData.version           ?? 4,
         savedAt:         serverTimestamp(),
       };
       await setDoc(doc(_db, 'saves', uid), slim);
@@ -184,7 +192,10 @@ export const FirebaseService = {
         level:    h.level    ?? 1,
         xp:       h.xp       ?? 0,
         equipped: h.equipped ?? {},
-        task:     'idle', // reset task on cloud load
+        task:     h.task ?? 'idle',
+        questId:  h.questId ?? null,
+        questStart: h.questStart ?? null,
+        questDuration: h.questDuration ?? null,
       };
     }
     return slim;
