@@ -1,0 +1,26 @@
+{
+  "appId": "com.kdsmedia.indofarm",
+  "appName": "IndoFarm Adventure",
+  "webDir": "game",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "indofarm-release.keystore",
+      "keystoreAlias": "indofarm",
+      "releaseType": "APK"
+    },
+    "minWebViewVersion": 60,
+    "backgroundColor": "#0d1117",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

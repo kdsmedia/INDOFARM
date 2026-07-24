@@ -1,0 +1,17 @@
+Server berjalan di port 5000
+  Asset Browser : http://localhost:5000/
+  Game Android  : http://localhost:5000/game/
+Traceback (most recent call last):
+  File [35m"/home/runner/workspace/server.py"[0m, line [35m714[0m, in [35m<module>[0m
+    [31mHTTPServer[0m[1;31m(('0.0.0.0', port), Handler)[0m.serve_forever()
+    [31m~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/socketserver.py"[0m, line [35m457[0m, in [35m__init__[0m
+    [31mself.server_bind[0m[1;31m()[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/http/server.py"[0m, line [35m140[0m, in [35mserver_bind[0m
+    [31msocketserver.TCPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/socketserver.py"[0m, line [35m478[0m, in [35mserver_bind[0m
+    [31mself.socket.bind[0m[1;31m(self.server_address)[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mOSError[0m: [35m[Errno 98] Address already in use[0m
