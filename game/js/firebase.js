@@ -7,7 +7,7 @@
 import { initializeApp }           from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider,
-  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signInWithPopup, signInWithCredential,
   signOut, onAuthStateChanged,
 } from 'firebase/auth';
 import {
@@ -55,14 +55,48 @@ export const FirebaseService = {
   get isConfigured() { return IS_CONFIGURED && !!_auth; },
   currentUser: null,
 
-  // Google Sign-In (popup → redirect fallback)
+  // Google Sign-In
+  // - Android (Capacitor): pakai @capacitor-community/google-auth → signInWithCredential
+  // - Browser/dev: pakai signInWithPopup sebagai fallback pengembangan
   async signInWithGoogle() {
     if (!_auth) return { ok: false, msg: 'Firebase belum dikonfigurasi.' };
-    const provider = new GoogleAuthProvider();
-    provider.addScope('profile');
-    provider.addScope('email');
-    // Try popup first; fall back to redirect if blocked (iframe / mobile)
+    // Cek apakah berjalan di native Android via Capacitor
+    const isNative = typeof window !== 'undefined'
+      && window.Capacitor?.isNativePlatform?.();
+    if (isNative) {
+      return this._signInNative();
+    }
+    return this._signInWebFallback();
+  },
+
+  // Native Android: gunakan Capacitor Google Auth plugin
+  async _signInNative() {
     try {
+      const { GoogleAuth } = await import('@capacitor-community/google-auth');
+      await GoogleAuth.initialize();
+      const googleUser = await GoogleAuth.signIn();
+      const idToken = googleUser.authentication?.idToken;
+      if (!idToken) return { ok: false, msg: 'Gagal mendapat token dari Google.' };
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(_auth, credential);
+      this.currentUser = result.user;
+      return { ok: true, user: result.user };
+    } catch (e) {
+      if (e.code === 'auth/network-request-failed') return { ok: false, msg: 'Tidak ada koneksi internet.' };
+      if (String(e).includes('cancel') || String(e).includes('12501')) {
+        return { ok: false, msg: 'Login dibatalkan.' };
+      }
+      console.warn('[Firebase] Native sign-in error:', e);
+      return { ok: false, msg: 'Login gagal. Pastikan Google Play Services tersedia.' };
+    }
+  },
+
+  // Browser/dev fallback (hanya untuk testing di browser, bukan APK)
+  async _signInWebFallback() {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
       const result = await signInWithPopup(_auth, provider);
       this.currentUser = result.user;
       return { ok: true, user: result.user };
@@ -70,34 +104,12 @@ export const FirebaseService = {
       if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
         return { ok: false, msg: 'Login dibatalkan.' };
       }
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
-        // Redirect fallback
-        try {
-          await signInWithRedirect(_auth, provider);
-          return { ok: false, msg: 'redirect' }; // page will reload
-        } catch (re) {
-          return { ok: false, msg: re.message };
-        }
-      }
       if (e.code === 'auth/network-request-failed') return { ok: false, msg: 'Tidak ada koneksi internet.' };
-      if (e.code === 'auth/unauthorized-domain') return { ok: false, msg: 'Domain belum diizinkan di Firebase Console. Tambahkan domain ini di Authentication → Settings → Authorized domains.' };
+      if (e.code === 'auth/unauthorized-domain') {
+        return { ok: false, msg: 'Login Google hanya tersedia di aplikasi Android. Buka via APK.' };
+      }
       return { ok: false, msg: e.message };
     }
-  },
-
-  // Call once on page load to capture result after redirect login
-  async checkRedirectResult() {
-    if (!_auth) return null;
-    try {
-      const result = await getRedirectResult(_auth);
-      if (result?.user) {
-        this.currentUser = result.user;
-        return result.user;
-      }
-    } catch (e) {
-      console.warn('[Firebase] Redirect result error:', e.message);
-    }
-    return null;
   },
 
   // Sign Out
