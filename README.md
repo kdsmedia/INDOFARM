@@ -1,9 +1,11 @@
 # 🏰 INDOFARM ADVENTURE
-### Game Idle Farm RPG — Android (APK) · v2.0
+### Game Idle Farm RPG — Android (APK) · v2.1
+**Developer:** ALTOMEDIA · **Package:** com.altomedia.indofarm
 
 > Game idle farm adventure bertemakan dunia medieval dengan nuansa IndoFantasy.  
 > Platform: **Android APK** — dikembangkan dengan Three.js + Capacitor.js  
-> Backend: **Firebase Auth + Firestore** · Ads: **AdMob Rewarded (no-skip)**
+> Backend: **Firebase Auth + Firestore** (altomedia-8f793) · Ads: **AdMob Rewarded (no-skip)**  
+> AdMob App ID: `ca-app-pub-6881903056221433~6902713015`
 
 ---
 

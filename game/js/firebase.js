@@ -18,12 +18,14 @@ import {
 // CATATAN: ini adalah FIREBASE WEB CONFIG, berbeda dengan google-services.json Android.
 // google-services.json dipakai oleh Capacitor/native, config ini untuk web/Firestore.
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyPLACEHOLDER_FILL_THIS",
-  authDomain:        "indofarm-app.firebaseapp.com",
-  projectId:         "indofarm-app",
-  storageBucket:     "indofarm-app.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:0000000000000000",
+  apiKey:            "AIzaSyDBM_PPd7uEAyGg8d2ILQ1bTx3A6KKFjBk",
+  authDomain:        "altomedia-8f793.firebaseapp.com",
+  databaseURL:       "https://altomedia-8f793-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "altomedia-8f793",
+  storageBucket:     "altomedia-8f793.firebasestorage.app",
+  messagingSenderId: "327513974065",
+  appId:             "1:327513974065:web:1a6b38d87b136eb191bc10",
+  measurementId:     "G-H2YR84K1FQ",
 };
 
 // Deteksi apakah config sudah diisi

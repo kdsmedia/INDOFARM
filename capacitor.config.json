@@ -1,6 +1,6 @@
 {
-  "appId": "com.kdsmedia.indofarm",
-  "appName": "IndoFarm Adventure",
+  "appId": "com.altomedia.indofarm",
+  "appName": "INDOFARM",
   "webDir": "game",
   "bundledWebRuntime": false,
   "server": {

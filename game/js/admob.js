@@ -11,8 +11,9 @@ let _native  = false;
 // Ad Unit IDs — ganti dengan ID dari AdMob Console kamu
 // Format: ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 const AD_UNITS = {
-  daily_reward: 'ca-app-pub-REPLACE_WITH_YOUR_PUBLISHER_ID/REPLACE_WITH_YOUR_AD_UNIT_ID',
-  free_item:    'ca-app-pub-REPLACE_WITH_YOUR_PUBLISHER_ID/REPLACE_WITH_YOUR_AD_UNIT_ID_2',
+  daily_reward:  'ca-app-pub-6881903056221433/2596636498',
+  free_item:     'ca-app-pub-6881903056221433/2596636498',
+  spin_gacha:    'ca-app-pub-6881903056221433/2596636498',
   // Test ID resmi Google (hanya untuk development):
   test_rewarded: 'ca-app-pub-3940256099942544/5224354917',
 };
