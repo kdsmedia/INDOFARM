@@ -10,14 +10,16 @@
   <link rel="stylesheet" href="css/style.css">
 
   <!-- Capacitor-bundled Android game runtime imports -->
+  <!-- All dependencies are served from local vendor files — no CDN required at runtime.
+       This prevents crashes on Android WebView when network is unavailable at startup. -->
   <script type="importmap">
   {
     "imports": {
-      "three":                  "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-      "three/addons/":          "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/",
-      "firebase/app":           "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js",
-      "firebase/auth":          "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js",
-      "firebase/firestore":     "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"
+      "three":              "./vendor/three/three.module.min.js",
+      "three/addons/":      "./vendor/three/",
+      "firebase/app":       "./vendor/firebase/firebase-app.js",
+      "firebase/auth":      "./vendor/firebase/firebase-auth.js",
+      "firebase/firestore": "./vendor/firebase/firebase-firestore.js"
     }
   }
   </script>
