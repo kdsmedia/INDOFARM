@@ -1,3 +1,0 @@
-- [Android-only distribution](android-only-distribution.md) — keep this project focused on the signed INDOFARM Android APK.
-- [Native build prerequisites](native-build-prerequisites.md) — release builds require Android SDK, Gradle, and installable Capacitor packages.
-- [Android build environment quirks](android-build-env-quirks.md) — JDK and SDK path setup required for successful Gradle builds.
