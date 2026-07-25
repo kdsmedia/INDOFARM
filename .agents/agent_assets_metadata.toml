@@ -6,3 +6,9 @@ id = "ovVFvwso0GAHq763SPjCC"
 uri = "file://alur-cerita-dan-cara-bermain-indofarm.txt"
 type = "text"
 title = "Unduh — Alur Cerita dan Cara Bermain INDOFARM"
+
+[[outputs]]
+id = "fufwiW9whIfe2vp5iVcn0"
+uri = "file://android/app/build/outputs/apk/debug/app-debug.apk"
+type = "unspecified"
+title = "INDOFARM Debug APK — install ini untuk testing"
