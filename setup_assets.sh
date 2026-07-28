@@ -7,6 +7,20 @@ set -euo pipefail
 
 UNITY="game/Assets/_Project"
 
+echo "===> Creating destination directories"
+mkdir -p "$UNITY/Art/UI/Sprites/Boxes"
+mkdir -p "$UNITY/Art/UI/Sprites/Buttons"
+mkdir -p "$UNITY/Art/UI/Sprites/Sliders"
+mkdir -p "$UNITY/Art/UI/Icons/Misc"
+mkdir -p "$UNITY/Art/Characters/Workers/Models"
+mkdir -p "$UNITY/Art/Characters/Workers/Animations"
+mkdir -p "$UNITY/Art/Characters/Farmer/Models"
+mkdir -p "$UNITY/Art/Characters/Farmer/Animations"
+mkdir -p "$UNITY/Art/Characters/Outfits/Peasant"
+mkdir -p "$UNITY/Art/Characters/Outfits/Ranger"
+mkdir -p "$UNITY/Art/Environment/Farm/Buildings"
+mkdir -p "$UNITY/Art/Environment/Nature/Trees"
+
 echo "===> [1/6] UI Sprites (Buttons, Boxes, Sliders)"
 cp -r BoxesBanners/.        "$UNITY/Art/UI/Sprites/Boxes/"
 cp -r ButtonsIcons/.        "$UNITY/Art/UI/Sprites/Buttons/"
