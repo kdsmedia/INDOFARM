@@ -85,6 +85,7 @@ jobs:
           unityVersion: 2022.3.20f1
           buildName: IdleFarm_HarvestEmpire
           androidExportType: androidPackage
+          versioning: None
           androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
           androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
@@ -141,6 +142,7 @@ jobs:
           targetPlatform: iOS
           unityVersion: 2022.3.20f1
           buildName: IdleFarm_HarvestEmpire
+          versioning: None
           allowDirtyBuild: true
 
       - name: Upload iOS Xcode project
