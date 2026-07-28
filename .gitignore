@@ -1,0 +1,57 @@
+# ─── Unity ────────────────────────────────────────────────────────────────────
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Unity cache & auto-generated
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+game/Library/
+game/Temp/
+game/Obj/
+game/Logs/
+game/UserSettings/
+game/MemoryCaptures/
+
+# Asset database
+game/Assets/AssetStoreTools*
+
+# Visual Studio / Rider
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.csproj
+*.unityproj
+*.sln
+
+# JetBrains Rider
+.idea/
+*.rsp
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+build/
+
+# Secrets / keys — never commit
+*.keystore
+*.p12
+*.mobileprovision
+local.properties

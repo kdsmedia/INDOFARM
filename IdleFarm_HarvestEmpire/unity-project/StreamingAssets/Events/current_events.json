@@ -1,0 +1,60 @@
+{
+  "_comment": "File ini berisi event musiman aktif. Ganti isinya via Remote Config atau update manual.",
+  "currentEvent": {
+    "eventId": "harvest_festival_2024",
+    "eventName": "Festival Panen Raya",
+    "currencyName": "Bintang Festival",
+    "currencyIcon": "icon_star_festival",
+    "startTimeISO": "2024-09-01T00:00:00Z",
+    "endTimeISO":   "2024-09-14T23:59:59Z",
+    "description": "Rayakan musim panen bersama seluruh petani! Kumpulkan Bintang Festival dari setiap panen dan tukarkan dengan hadiah eksklusif.",
+    "missionBonus": {
+      "description": "Setiap panen selama event memberikan 1 Bintang Festival ekstra.",
+      "bonusType": "harvest",
+      "bonusAmount": 1
+    },
+    "rewardTiers": [
+      {
+        "tierId": "tier_1",
+        "tierName": "Petani Pemula",
+        "requiredAmount": 50,
+        "rewardCoins": 5000,
+        "rewardCosmeticId": "",
+        "description": "Kumpulkan 50 Bintang Festival"
+      },
+      {
+        "tierId": "tier_2",
+        "tierName": "Petani Berpengalaman",
+        "requiredAmount": 200,
+        "rewardCoins": 25000,
+        "rewardCosmeticId": "skin_autumn_farmer",
+        "description": "Kumpulkan 200 Bintang Festival"
+      },
+      {
+        "tierId": "tier_3",
+        "tierName": "Master Panen",
+        "requiredAmount": 500,
+        "rewardCoins": 100000,
+        "rewardCosmeticId": "decoration_festival_arch",
+        "description": "Kumpulkan 500 Bintang Festival"
+      },
+      {
+        "tierId": "tier_4",
+        "tierName": "Raja Festival",
+        "requiredAmount": 1000,
+        "rewardCoins": 500000,
+        "rewardCosmeticId": "skin_festival_king",
+        "description": "Kumpulkan 1000 Bintang Festival"
+      }
+    ]
+  },
+  "upcomingEvents": [
+    {
+      "eventId": "spring_bloom_2024",
+      "eventName": "Festival Musim Semi",
+      "startTimeISO": "2024-10-01T00:00:00Z",
+      "endTimeISO":   "2024-10-14T23:59:59Z",
+      "teaser": "Bunga-bunga bermekaran dan tanaman tumbuh lebih cepat!"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 24
+  productGUID: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+  AndroidProfiler: 0
+  AndroidFilterTouchesWhenObscured: 0
+  AndroidEnableSustainedPerformanceMode: 0
+  defaultScreenOrientation: 2
+  targetDevice: 2
+  useOnDemandResources: 0
+  accelerometerFrequency: 60
+  companyName: YourStudio
+  productName: Idle Farm Harvest Empire
+  defaultCursor: {fileID: 0}
+  cursorHotspot: {x: 0, y: 0}
+  m_SplashScreenBackgroundColor: {r: 0.22, g: 0.47, b: 0.18, a: 1}
+  m_ShowUnitySplashScreen: 1
+  m_ShowUnitySplashLogo: 1
+  m_SplashScreenOverlayOpacity: 1
+  m_SplashScreenAnimation: 1
+  m_SplashScreenLogoStyle: 1
+  m_SplashScreenDrawMode: 0
+  m_SplashScreenBackgroundAnimationZoom: 1
+  m_SplashScreenLogoAnimationZoom: 1
+  m_SplashScreenLogos: []
+  defaultScreenWidth: 1080
+  defaultScreenHeight: 1920
+  m_StereoRenderingPath: 0
+  m_ActiveColorSpace: 1
+  m_MTRendering: 1
+  allowedAutorotateToPortrait: 1
+  allowedAutorotateToPortraitUpsideDown: 0
+  allowedAutorotateToLandscapeRight: 0
+  allowedAutorotateToLandscapeLeft: 0
+  useOSAutorotation: 0
+  use32BitDisplayBuffer: 1
+  preserveFramebufferAlpha: 0
+  disableDepthAndStencilBuffers: 0
+  androidStartInFullscreen: 1
+  androidRenderOutsideSafeArea: 1
+  androidUseSwappy: 1
+  m_AndroidIsGame: 1
+  m_AndroidMinSdkVersion: 24
+  m_AndroidTargetSdkVersion: 33
+  m_AndroidBundleVersionCode: 1
+  m_AndroidSupportedArchitectures: 3
+  m_AndroidScriptingBackend: 1
+  m_AndroidIl2CppCodeGenerationSettings: 1
+  m_AndroidStrippingLevel: 1
+  m_AndroidReleaseMinification: 1
+  androidTargetArchitectures: 3
+  applicationIdentifier:
+    Android: com.yourstudio.idlefarm
+    iPhone: com.yourstudio.idlefarm
+    Standalone: com.yourstudio.idlefarm
+  buildNumber:
+    Android: 1
+    iPhone: 1
+    tvOS: 1
+  AndroidBundleVersionCode: 1
+  AndroidMinSdkVersion: 24
+  AndroidTargetSdkVersion: 33
+  AndroidPreferredInstallLocation: 1
+  bundleVersion: 1.0.0
+  iPhoneApplicationDisplayName: Idle Farm
+  iOSTargetOSVersionString: 15.0
+  iPhoneBundleIdentifier: com.yourstudio.idlefarm
+  iOSSupportedOrientations: 2
+  iOSStatusBarHidden: 1
+  iOSStatusBarStyle: 0
+  m_iOSScriptingBackend: 1
+  stripEngineCode: 1
+  iPhoneStrippingLevel: 0
+  gcIncremental: 1
+  MobileMTRendering: 1
+  scriptingDefineSymbols: {}
+  additionalCompilerArguments: {}
+  platformArchitecture:
+    Android: 1
+    iPhone: 1
+  scriptingBackend:
+    Android: 1
+    iPhone: 1
+  il2cppCompilerConfiguration:
+    Android: 1
+    iPhone: 1
+  m_RenderingPath: 1
+  m_MobileRenderingPath: 1
+  metroPackageName: IdleFarm
+  metroApplicationDescription: Idle Farm Harvest Empire
+  graphicsJobMode: 0
+  ActionOnDotNetUnhandledException: 1
+  enableCrashReportAPI: 0
+  accelerometerFrequency: 60
+  locationUsageDescription: 
+  microphoneUsageDescription: 
+  cameraUsageDescription: 
+  vulkanNumSwapchainBuffers: 3
+  vulkanEnableSetSRGBWrite: 0
+  loadStoreDebugModeEnabled: 0

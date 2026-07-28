@@ -1,0 +1,104 @@
+{
+  "_comment": "Kalender event tahunan sebagai panduan tim live-ops.",
+  "year": 2024,
+  "eventCalendar": [
+    {
+      "month": 1,
+      "eventName": "Festival Tahun Baru",
+      "theme": "Kembang api, resolusi petani baru",
+      "suggestedDuration": 7,
+      "specialCrop": "Bambu Emas"
+    },
+    {
+      "month": 2,
+      "eventName": "Festival Cinta Kebun",
+      "theme": "Bunga-bunga, tanaman hias, dekorasi merah muda",
+      "suggestedDuration": 7,
+      "specialCrop": "Mawar Merah"
+    },
+    {
+      "month": 3,
+      "eventName": "Festival Musim Semi",
+      "theme": "Pertumbuhan, warna-warni bunga, hujan ringan",
+      "suggestedDuration": 14,
+      "specialCrop": "Bunga Matahari"
+    },
+    {
+      "month": 4,
+      "eventName": "Panen Hujan",
+      "theme": "Musim hujan, padi basah, lele dan ikan sawah",
+      "suggestedDuration": 10,
+      "specialCrop": "Padi Unggul"
+    },
+    {
+      "month": 5,
+      "eventName": "Hari Petani Nasional",
+      "theme": "Pahlawan tani, tradisi lokal Indonesia",
+      "suggestedDuration": 7,
+      "specialCrop": "Singkong Emas"
+    },
+    {
+      "month": 6,
+      "eventName": "Festival Durian",
+      "theme": "Raja buah, aroma kuat, musim durian",
+      "suggestedDuration": 14,
+      "specialCrop": "Durian Raja"
+    },
+    {
+      "month": 7,
+      "eventName": "Liburan Panen",
+      "theme": "Musim liburan sekolah, anak-anak di kebun",
+      "suggestedDuration": 14,
+      "specialCrop": "Semangka Raksasa"
+    },
+    {
+      "month": 8,
+      "eventName": "Festival Kemerdekaan",
+      "theme": "Merah putih, lomba tani, kebanggaan lokal",
+      "suggestedDuration": 17,
+      "specialCrop": "Cabai Merah Putih"
+    },
+    {
+      "month": 9,
+      "eventName": "Festival Panen Raya",
+      "theme": "Puncak musim panen, hasil melimpah, syukuran",
+      "suggestedDuration": 14,
+      "specialCrop": "Padi Premium"
+    },
+    {
+      "month": 10,
+      "eventName": "Festival Labu",
+      "theme": "Musim gugur, labu-labu berwarna, sedikit mistis",
+      "suggestedDuration": 10,
+      "specialCrop": "Labu Raksasa"
+    },
+    {
+      "month": 11,
+      "eventName": "Festival Teh & Kopi",
+      "theme": "Perkebunan teh dan kopi pegunungan",
+      "suggestedDuration": 10,
+      "specialCrop": "Kopi Arabika"
+    },
+    {
+      "month": 12,
+      "eventName": "Festival Akhir Tahun",
+      "theme": "Salju tropis, hadiah, countdown tahun baru",
+      "suggestedDuration": 14,
+      "specialCrop": "Pohon Natal Mini"
+    }
+  ],
+  "miniEvents": [
+    {
+      "triggerCondition": "user_has_played_7_days",
+      "eventName": "Bonus Loyalitas",
+      "description": "Hadiah untuk pemain setia 7 hari berturut-turut",
+      "duration": 3
+    },
+    {
+      "triggerCondition": "first_prestige",
+      "eventName": "Petani Veteran",
+      "description": "Rayakan prestige pertama dengan bonus koin besar",
+      "duration": 1
+    }
+  ]
+}
