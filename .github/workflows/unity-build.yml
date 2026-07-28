@@ -78,7 +78,7 @@ jobs:
           targetPlatform: Android
           unityVersion: 2022.3.20f1
           buildName: IdleFarm_HarvestEmpire
-          androidExportType: androidAppBundle
+          androidExportType: androidPackage
           androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
           androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
