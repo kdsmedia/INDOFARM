@@ -52,6 +52,12 @@ jobs:
       github.event.inputs.build_target == 'All' ||
       github.event.inputs.build_target == 'Android'
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
       - name: Download prepared project
         uses: actions/download-artifact@v4
         with:
@@ -103,6 +109,12 @@ jobs:
       github.event.inputs.build_target == 'All' ||
       github.event.inputs.build_target == 'iOS'
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
       - name: Download prepared project
         uses: actions/download-artifact@v4
         with:
